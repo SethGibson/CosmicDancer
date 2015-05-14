@@ -20,6 +20,9 @@ public class PointCloudManager
     private int             mLocViewM;
     private final String    mUniformProjM = "uProjMatrix";
     private int             mLocProjM;
+    private final String    mUniformNormM = "uNormalMatrix";
+    private int             mLocNormM;
+
     private final String    mUniformLightPos = "uLightPos";
     private int             mLocLightPos;
 
@@ -48,7 +51,8 @@ public class PointCloudManager
     private float[]         mModelMatrix = new float[16];
     private float[]         mViewMatrix = new float[16];
     private float[]         mProjMatrix = new float[16];
-    private float[]         mMVP = new float[16];
+    private float[]         mNormMatrix = new float[16];
+
     private int             mNumInstances;
     private int             mInstanceSize;
     private int             mVertexSize;
@@ -77,6 +81,7 @@ public class PointCloudManager
         mLocModelM = glGetUniformLocation(programID, mUniformModelM);
         mLocViewM = glGetUniformLocation(programID, mUniformViewM);
         mLocProjM = glGetUniformLocation(programID, mUniformProjM);
+        mLocNormM = glGetUniformLocation(programID, mUniformNormM);
         mLocLightPos = glGetUniformLocation(programID, mUniformLightPos);
 
         //get attributes
@@ -166,8 +171,8 @@ public class PointCloudManager
         setIdentityM(mProjMatrix, 0);
         perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
 
-        multiplyMM(mMVP, 0, mViewMatrix, 0, mModelMatrix, 0);
-        multiplyMM(mMVP, 0, mProjMatrix, 0, mMVP, 0);
+        setIdentityM(mNormMatrix, 0);
+        invertM(mNormMatrix,0,mModelMatrix,0);
     }
 
     public void DrawPointCloud(float[] pLightPos, int pInstanceVAO, int pProgID)
@@ -176,6 +181,7 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
         glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
         glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
+        glUniformMatrix4fv(mLocNormM, 1, true, mNormMatrix, 0);
         glUniform3fv(mLocLightPos,1,pLightPos,0);
         glBindVertexArray(pInstanceVAO);
         glDrawArraysInstanced(GL_TRIANGLES,0,36,mNumInstances);
