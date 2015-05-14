@@ -1,12 +1,14 @@
 precision mediump float;
+uniform vec3 uLightPos;
+
 varying vec4 Color;
 varying vec3 Normal;
+varying vec3 WorldPos;
+
 void main()
 {
-    float normalR = (Normal.x+1.0)*0.5;
-    float normalG = (Normal.y+1.0)*0.5;
-    float normalB = (Normal.z+1.0)*0.5;
 
-    vec3 fColor = Color.xyz*vec3(0.01)+vec3(normalR,normalG,normalB);
-    gl_FragColor = vec4(fColor,1.0);
+    vec3 lightDir = normalize(uLightPos-WorldPos);
+    float diffContrib = max(dot(Normal,lightDir),0.0);
+    gl_FragColor = Color*diffContrib;
 }

@@ -77,7 +77,7 @@ public class PointCloudManager
         mLocModelM = glGetUniformLocation(programID, mUniformModelM);
         mLocViewM = glGetUniformLocation(programID, mUniformViewM);
         mLocProjM = glGetUniformLocation(programID, mUniformProjM);
-        //mLocLightPos = glGetUniformLocation(programID, mUniformLightPos);
+        mLocLightPos = glGetUniformLocation(programID, mUniformLightPos);
 
         //get attributes
         mLocPos = glGetAttribLocation(programID, mAttribPos);
@@ -176,7 +176,7 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
         glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
         glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
-
+        glUniform3fv(mLocLightPos,1,pLightPos,0);
         glBindVertexArray(pInstanceVAO);
         glDrawArraysInstanced(GL_TRIANGLES,0,36,mNumInstances);
         glBindVertexArray(0);

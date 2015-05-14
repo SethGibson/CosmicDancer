@@ -9,6 +9,7 @@ attribute vec4 iColor;
 attribute vec3 iPosition;
 attribute float iSize;
 
+varying vec3 WorldPos;
 varying vec4 Color;
 varying vec3 Normal;
 
@@ -16,5 +17,6 @@ void main()
 {
     Color = iColor;
     Normal = vNormal;
+    WorldPos = vec3(uModelMatrix*vPosition);
     gl_Position = uProjMatrix*uViewMatrix*uModelMatrix*(vec4(vPosition.xyz*vec3(iSize),1.0)+vec4(iPosition,1.0));
 }

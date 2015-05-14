@@ -60,7 +60,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                                             0, 1, 0,
                                             0.1f,500.0f,
                                             45.0f);
-        mLightPosition[0] = 0;mLightPosition[1] = 10;mLightPosition[0] = 10;
+        mLightPosition[0] = 0;mLightPosition[1] = 10;mLightPosition[2] = 10;
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
@@ -98,7 +98,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                     instanceData[id++] = xPos;
                     instanceData[id++] = yPos;
                     instanceData[id++] = zPos;
-                    instanceData[id++] = rgbGen.nextFloat();
+                    instanceData[id++] = 0.0f;
                     instanceData[id++] = rgbGen.nextFloat();
                     instanceData[id++] = rgbGen.nextFloat();
                     instanceData[id++] = Math.max(rgbGen.nextFloat(), 0.2f);
