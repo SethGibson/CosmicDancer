@@ -57,6 +57,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config)
     {
+        glClearColor(0.25f, 0.25f, 0.25f, 1f);
         mCamera = new SceneManager.Camera(  0, 0, 25,
                                             0, 0, 0,
                                             0, 1, 0,
@@ -66,8 +67,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
-
-        glClearColor(0.25f, 0.25f, 0.25f, 1f);
 
         final int[] cBitmapIDs = new int[]
                 {
@@ -113,18 +112,10 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         float[] meshData = SceneManager.GetCubeVerts();
         int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
+        int elementCount = meshData.length/6;
+        int instanceCount = instanceData.length/7;
 
-        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO,instanceVBO,-1,mCloudProgID);
-
-        //Point Cloud ////////////////////////////////////////////////////////////////
-        // DEPRECATING
-        /*
-        mCloudProgID = mCloudMgr.CreateProgram();
-        mInstanceVboID = mCloudMgr.CreateInstanceBuffer(instanceData);
-
-        float[] meshData = SceneManager.GetCubeVerts();
-        mCloudVaoID = mCloudMgr.CreateMeshBuffer(meshData,mInstanceVboID);
-        */
+        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, -1,mCloudProgID);
     }
 
     @Override
@@ -149,8 +140,5 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
         mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle,yAngle,zAngle});
         mCloudMgr.DrawCloud(mPointCloud, mLightPosition);
-
-        // DEPRECATING ///////////////////////////////////////////////////////////////////////////////
-        // mCloudMgr.DrawPointCloud(mLightPosition, mCloudVaoID, mCloudProgID);
     }
 }

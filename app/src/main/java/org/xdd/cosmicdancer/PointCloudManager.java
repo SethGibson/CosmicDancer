@@ -19,6 +19,7 @@ public class PointCloudManager
         public int  IndexVBO;
         public int  GlslProgram;
         public int  ElementCount;
+        public int  InstanceCount;
 
         public CloudData()
         {
@@ -30,7 +31,7 @@ public class PointCloudManager
             ElementCount = -1;
         }
 
-        public CloudData(int pVAO, int pMeshID, int pInstID, int pIndexID, int pProgID, int pNumElem)
+        public CloudData(int pVAO, int pMeshID, int pNumElem, int pInstID, int pNumInst, int pIndexID, int pProgID)
         {
             CloudVAO = pVAO;
             MeshVBO = pMeshID;
@@ -38,6 +39,7 @@ public class PointCloudManager
             IndexVBO = pIndexID;
             GlslProgram = pProgID;
             ElementCount = pNumElem;
+            InstanceCount = pNumInst;
         }
     };
 
@@ -136,7 +138,7 @@ public class PointCloudManager
         int[] vboID = new int[1];
         glGenBuffers(1,vboID,0);
         glBindBuffer(GL_ARRAY_BUFFER, vboID[0]);
-        glBufferData(GL_ARRAY_BUFFER, pData.length*S_SIZE_FLOAT, dataBuffer, pUsage);
+        glBufferData(GL_ARRAY_BUFFER, pData.length * S_SIZE_FLOAT, dataBuffer, pUsage);
         glBindBuffer(GL_ARRAY_BUFFER,0);
 
         return vboID[0];
@@ -151,13 +153,13 @@ public class PointCloudManager
         int[] vboID = new int[1];
         glGenBuffers(1,vboID,0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID[0]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pData.length*S_SIZE_FLOAT, dataBuffer, pUsage);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pData.length * S_SIZE_FLOAT, dataBuffer, pUsage);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 
         return vboID[0];
     }
 
-    public CloudData CreatePointCloud(int pMeshVBO, int pInstanceVBO, int pIndexVBO, int pProg)
+    public CloudData CreatePointCloud(int pMeshVBO, int pNumElems, int pInstanceVBO, int pNumInst, int pIndexVBO, int pProg)
     {
         int[] cVaoID = new int[1];
 
@@ -188,7 +190,7 @@ public class PointCloudManager
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-        return new CloudData(cVaoID[0],pMeshVBO,pInstanceVBO,pIndexVBO,pProg,0);
+        return new CloudData(cVaoID[0],pMeshVBO, pNumElems, pInstanceVBO, pNumInst, pIndexVBO,pProg);
     }
 
     public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
@@ -223,83 +225,5 @@ public class PointCloudManager
         glDrawArraysInstanced(GL_TRIANGLES,0,36,1000);
         glBindVertexArray(0);
 
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // DEPRECATED ////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    public int CreateInstanceBuffer(float[] pPointData)
-    {
-        mInstanceData = ByteBuffer.allocateDirect(pPointData.length * S_SIZE_FLOAT)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-
-        mInstanceData.put(pPointData);
-        mInstanceData.position(0);
-
-        //setup as a single VBO for drawing test
-        int[] cVoIDs = new int[1];
-        glGenBuffers(1, cVoIDs, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, cVoIDs[0]);
-        glBufferData(GL_ARRAY_BUFFER, pPointData.length * S_SIZE_FLOAT, mInstanceData, GL_STATIC_DRAW /*GL_DYNAMIC_DRAW*/);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        mNumInstances = pPointData.length/mInstanceSize;
-        return cVoIDs[0];
-    }
-
-    public int CreateMeshBuffer(float pPointData[], int pVboID)
-    {
-        mNumElements = pPointData.length/mVertexSize;
-        mMeshData = ByteBuffer.allocateDirect(pPointData.length * S_SIZE_FLOAT).order(ByteOrder.nativeOrder()).asFloatBuffer();
-        mMeshData.put(pPointData);
-        mMeshData.position(0);
-
-        int[] cVoIDs = new int[2];
-
-        //Mesh Buffer
-        glGenVertexArrays(1, cVoIDs, 0);
-        glGenBuffers(1, cVoIDs, 1);
-        glBindVertexArray(cVoIDs[0]);
-        glBindBuffer(GL_ARRAY_BUFFER, cVoIDs[1]);
-        glBufferData(GL_ARRAY_BUFFER, pPointData.length * S_SIZE_FLOAT, mMeshData, GL_STATIC_DRAW /*GL_DYNAMIC_DRAW*/);
-
-        //Enable Position and Normals per-vertex
-        glEnableVertexAttribArray(mLocPos);
-        glVertexAttribPointer(mLocPos, 3, GL_FLOAT, false, S_VERTEX_STRIDE, 0);
-        glEnableVertexAttribArray(mLocNorm);
-        glVertexAttribPointer(mLocNorm, 3, GL_FLOAT, false, S_VERTEX_STRIDE, S_SIZE_POS * S_SIZE_FLOAT);
-        //
-
-        //Enable Position, Color, and Size per-instance
-        glBindBuffer(GL_ARRAY_BUFFER, pVboID);
-        glEnableVertexAttribArray(mLocIPos);
-        glVertexAttribPointer(mLocIPos, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, 0);
-        glVertexAttribDivisor(mLocIPos, 1);
-        glEnableVertexAttribArray(mLocIColor);
-        glVertexAttribPointer(mLocIColor, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, S_SIZE_POS*S_SIZE_FLOAT);
-        glVertexAttribDivisor(mLocIColor, 1);
-        glEnableVertexAttribArray(mLocISize);
-        glVertexAttribPointer(mLocISize, 1, GL_FLOAT, false, S_INSTANCE_STRIDE, (S_SIZE_POS + S_SIZE_COLOR) * S_SIZE_FLOAT);
-        glVertexAttribDivisor(mLocISize, 1);
-
-        //Cleanup
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-
-        return cVoIDs[0];
-    }
-
-    public void DrawPointCloud(float[] pLightPos, int pInstanceVAO, int pProgID)
-    {
-        glUseProgram(pProgID);
-        glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
-        glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
-        glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
-        glUniformMatrix4fv(mLocNormM, 1, true, mNormMatrix, 0);
-        glUniform3fv(mLocLightPos,1,pLightPos,0);
-        glBindVertexArray(pInstanceVAO);
-        glDrawArraysInstanced(GL_TRIANGLES,0,mNumElements,mNumInstances);
-        glBindVertexArray(0);
     }
 }
