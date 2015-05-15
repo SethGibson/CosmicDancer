@@ -41,6 +41,8 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     private SceneManager.Camera mCamera;
     private float[]             mLightPosition = new float[3];
 
+    private PointCloudManager.CloudData mPointCloud;
+
     public CloudRenderer(Context pContext)
     {
         mContext = pContext;
@@ -106,12 +108,23 @@ public class CloudRenderer implements GLSurfaceView.Renderer
             }
         }
 
-        //Point Cloud
+        mCloudProgID = mCloudMgr.CreateProgram();
+
+        float[] meshData = SceneManager.GetCubeVerts();
+        int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
+        int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
+
+        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO,instanceVBO,-1,mCloudProgID);
+
+        //Point Cloud ////////////////////////////////////////////////////////////////
+        // DEPRECATING
+        /*
         mCloudProgID = mCloudMgr.CreateProgram();
         mInstanceVboID = mCloudMgr.CreateInstanceBuffer(instanceData);
 
         float[] meshData = SceneManager.GetCubeVerts();
         mCloudVaoID = mCloudMgr.CreateMeshBuffer(meshData,mInstanceVboID);
+        */
     }
 
     @Override
@@ -133,7 +146,11 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         float xAngle = sysTime*0.00000002f;
         float yAngle = sysTime*0.00000004f;
         float zAngle = sysTime*0.00000001f;
+
         mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle,yAngle,zAngle});
-        mCloudMgr.DrawPointCloud(mLightPosition, mCloudVaoID, mCloudProgID);
+        mCloudMgr.DrawCloud(mPointCloud, mLightPosition);
+
+        // DEPRECATING ///////////////////////////////////////////////////////////////////////////////
+        // mCloudMgr.DrawPointCloud(mLightPosition, mCloudVaoID, mCloudProgID);
     }
 }

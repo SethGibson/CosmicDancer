@@ -155,7 +155,6 @@ public class PointCloudManager
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 
         return vboID[0];
-
     }
 
     public CloudData CreatePointCloud(int pMeshVBO, int pInstanceVBO, int pIndexVBO, int pProg)
@@ -210,6 +209,20 @@ public class PointCloudManager
 
         setIdentityM(mNormMatrix, 0);
         invertM(mNormMatrix,0,mModelMatrix,0);
+    }
+
+    public void DrawCloud(CloudData pCloudData, float[] pLightPos)
+    {
+        glUseProgram(pCloudData.GlslProgram);
+        glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
+        glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
+        glUniformMatrix4fv(mLocNormM, 1, true, mNormMatrix, 0);
+        glUniform3fv(mLocLightPos,1,pLightPos,0);
+        glBindVertexArray(pCloudData.CloudVAO);
+        glDrawArraysInstanced(GL_TRIANGLES,0,36,1000);
+        glBindVertexArray(0);
+
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
