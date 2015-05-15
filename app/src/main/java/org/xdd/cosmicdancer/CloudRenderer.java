@@ -24,7 +24,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     //Skybox
     public SkyboxManager        mSkyboxMgr;
     private int                 mSkyboxProgID;
-    private int                 mSkyboxTexID;
+    private int[]               mSkyboxTexIDs = new int[5];
     private int                 mSkyboxVaoID;
 
     private float               mYAngle = 0f;
@@ -40,6 +40,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     private float               mAspect;
     private SceneManager.Camera mCamera;
     private float[]             mLightPosition = new float[3];
+    private long                mStartTime;
 
     private PointCloudManager.CloudData mPointCloud;
 
@@ -68,21 +69,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
 
-        final int[] cBitmapIDs = new int[]
-                {
-                        R.drawable.px,R.drawable.nx,
-                        R.drawable.py,R.drawable.ny,
-                        R.drawable.pz,R.drawable.nz
-                };
-
-        mSkyboxTexID = mSkyboxMgr.CreateCubemap(cBitmapIDs);
-        mSkyboxProgID = mSkyboxMgr.CreateProgram();
-        mSkyboxVaoID = mSkyboxMgr.CreateSkyboxMesh();
-
-        if(mSkyboxTexID <=0)
-            Log.e("onSurfaceCreated", "Unable to create skybox cubemap");
-        if(mSkyboxProgID <=0)
-            Log.e("onSurfaceCreated", "Unable to create skybox program");
+        SetupSkyboxes();
 
         Random rgbGen = new Random();
         float[] instanceData = new float[1000*7];
@@ -145,13 +132,26 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mSkyboxMgr.SetMatrices(mAspect, 45.0f, 0.1f, 10.0f, new float[]{0, 0, 0});
-        mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexID);
+        mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[0]);
 
         float xAngle = sysTime*0.00000002f;
         float yAngle = sysTime*0.00000004f;
         float zAngle = sysTime*0.00000001f;
 
-        mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle,yAngle,zAngle});
+        mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle, yAngle, zAngle});
         mCloudMgr.DrawCloud(mPointCloud, mLightPosition);
+    }
+
+    public void SetupSkyboxes()
+    {
+        //load textures
+        int[] skyboxIds = new int[]
+                {
+                        R.drawable.01_px,
+                }
+
+        //setup program
+        mSkyboxProgID = mSkyboxMgr.CreateProgram();
+        mSkyboxVaoID = mSkyboxMgr.CreateSkyboxMesh();
     }
 }
