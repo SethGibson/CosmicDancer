@@ -1,16 +1,46 @@
 package org.xdd.cosmicdancer;
 
-import static android.opengl.GLES30.*;
-import static android.opengl.Matrix.*;
+        import static android.opengl.GLES30.*;
+        import static android.opengl.Matrix.*;
 
-import android.content.Context;
+        import android.content.Context;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
+        import java.nio.ByteBuffer;
+        import java.nio.ByteOrder;
+        import java.nio.FloatBuffer;
 
 public class PointCloudManager
 {
+    public class CloudData
+    {
+        public int  CloudVAO;
+        public int  MeshVBO;
+        public int  InstanceVBO;
+        public int  IndexVBO;
+        public int  GlslProgram;
+        public int  ElementCount;
+
+        public CloudData()
+        {
+            CloudVAO = -1;
+            MeshVBO = -1;
+            InstanceVBO = -1;
+            IndexVBO = -1;
+            GlslProgram = -1;
+            ElementCount = -1;
+        }
+
+        public CloudData(int pVAO, int pMeshID, int pInstID, int pIndexID, int pProgID, int pNumElem)
+        {
+            CloudVAO = pVAO;
+            MeshVBO = pMeshID;
+            InstanceVBO = pInstID;
+            IndexVBO = pIndexID;
+            GlslProgram = pProgID;
+            ElementCount = pNumElem;
+        }
+    };
+
     private Context         mContext;
     private ShaderManager   mShaderMgr;
 
@@ -54,6 +84,7 @@ public class PointCloudManager
     private float[]         mNormMatrix = new float[16];
 
     private int             mNumInstances;
+    private int             mNumElements;
     private int             mInstanceSize;
     private int             mVertexSize;
 
@@ -94,11 +125,101 @@ public class PointCloudManager
         return programID;
     }
 
+    public int CreateArrayBuffer(float[] pData, int pUsage)
+    {
+        FloatBuffer dataBuffer = ByteBuffer.allocateDirect(pData.length*S_SIZE_FLOAT)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        dataBuffer.put(pData);
+        dataBuffer.position(0);
+
+        int[] vboID = new int[1];
+        glGenBuffers(1,vboID,0);
+        glBindBuffer(GL_ARRAY_BUFFER, vboID[0]);
+        glBufferData(GL_ARRAY_BUFFER, pData.length*S_SIZE_FLOAT, dataBuffer, pUsage);
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+
+        return vboID[0];
+    }
+
+    public int CreateElementBuffer(byte[] pData, int pUsage)
+    {
+        ByteBuffer dataBuffer = ByteBuffer.allocateDirect(pData.length)
+                .put(pData);
+        dataBuffer.position(0);
+
+        int[] vboID = new int[1];
+        glGenBuffers(1,vboID,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID[0]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pData.length*S_SIZE_FLOAT, dataBuffer, pUsage);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+
+        return vboID[0];
+
+    }
+
+    public CloudData CreatePointCloud(int pMeshVBO, int pInstanceVBO, int pIndexVBO, int pProg)
+    {
+        int[] cVaoID = new int[1];
+
+        glGenVertexArrays(1, cVaoID, 0);
+        glBindVertexArray(cVaoID[0]);
+
+        //setup mesh data
+        //attribs: pos, norm
+        glBindBuffer(GL_ARRAY_BUFFER, pMeshVBO);
+        glEnableVertexAttribArray(mLocPos);
+        glVertexAttribPointer(mLocPos, 3, GL_FLOAT, false, S_VERTEX_STRIDE, 0);
+        glEnableVertexAttribArray(mLocNorm);
+        glVertexAttribPointer(mLocNorm,3,GL_FLOAT,false,S_VERTEX_STRIDE,S_SIZE_POS*S_SIZE_FLOAT);
+
+        //setup instance data
+        glBindBuffer(GL_ARRAY_BUFFER, pInstanceVBO);
+        glEnableVertexAttribArray(mLocIPos);
+        glVertexAttribPointer(mLocIPos, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, 0);
+        glVertexAttribDivisor(mLocIPos, 1);
+        glEnableVertexAttribArray(mLocIColor);
+        glVertexAttribPointer(mLocIColor, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, S_SIZE_POS * S_SIZE_FLOAT);
+        glVertexAttribDivisor(mLocIColor, 1);
+        glEnableVertexAttribArray(mLocISize);
+        glVertexAttribPointer(mLocISize, 1, GL_FLOAT, false, S_INSTANCE_STRIDE, (S_SIZE_POS + S_SIZE_COLOR) * S_SIZE_FLOAT);
+        glVertexAttribDivisor(mLocISize, 1);
+
+        //cleanup
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        return new CloudData(cVaoID[0],pMeshVBO,pInstanceVBO,pIndexVBO,pProg,0);
+    }
+
+    public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
+    {
+        setIdentityM(mModelMatrix, 0);
+        translateM(mModelMatrix, 0, pTrans[0], pTrans[1], pTrans[2]);
+        rotateM(mModelMatrix, 0, pRot[0], 1.0f, 0.0f, 0.0f);
+        rotateM(mModelMatrix, 0, pRot[1], 0.0f, 1.0f, 0.0f);
+        rotateM(mModelMatrix, 0, pRot[2], 0.0f, 0.0f, 1.0f);
+
+        setIdentityM(mViewMatrix, 0);
+        setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
+                pCamera.LookAt[0], pCamera.LookAt[1], pCamera.LookAt[2],
+                pCamera.Up[0], pCamera.Up[1], pCamera.Up[2]);
+
+        setIdentityM(mProjMatrix, 0);
+        perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
+
+        setIdentityM(mNormMatrix, 0);
+        invertM(mNormMatrix,0,mModelMatrix,0);
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // DEPRECATED ////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
     public int CreateInstanceBuffer(float[] pPointData)
     {
         mInstanceData = ByteBuffer.allocateDirect(pPointData.length * S_SIZE_FLOAT)
-                                    .order(ByteOrder.nativeOrder())
-                                    .asFloatBuffer();
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
 
         mInstanceData.put(pPointData);
         mInstanceData.position(0);
@@ -116,6 +237,7 @@ public class PointCloudManager
 
     public int CreateMeshBuffer(float pPointData[], int pVboID)
     {
+        mNumElements = pPointData.length/mVertexSize;
         mMeshData = ByteBuffer.allocateDirect(pPointData.length * S_SIZE_FLOAT).order(ByteOrder.nativeOrder()).asFloatBuffer();
         mMeshData.put(pPointData);
         mMeshData.position(0);
@@ -155,26 +277,6 @@ public class PointCloudManager
         return cVoIDs[0];
     }
 
-    public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
-    {
-        setIdentityM(mModelMatrix, 0);
-        translateM(mModelMatrix, 0, pTrans[0], pTrans[1], pTrans[2]);
-        rotateM(mModelMatrix, 0, pRot[0], 1.0f, 0.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[1], 0.0f, 1.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[2], 0.0f, 0.0f, 1.0f);
-
-        setIdentityM(mViewMatrix, 0);
-        setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
-                pCamera.LookAt[0], pCamera.LookAt[1], pCamera.LookAt[2],
-                pCamera.Up[0], pCamera.Up[1], pCamera.Up[2]);
-
-        setIdentityM(mProjMatrix, 0);
-        perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
-
-        setIdentityM(mNormMatrix, 0);
-        invertM(mNormMatrix,0,mModelMatrix,0);
-    }
-
     public void DrawPointCloud(float[] pLightPos, int pInstanceVAO, int pProgID)
     {
         glUseProgram(pProgID);
@@ -184,7 +286,7 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocNormM, 1, true, mNormMatrix, 0);
         glUniform3fv(mLocLightPos,1,pLightPos,0);
         glBindVertexArray(pInstanceVAO);
-        glDrawArraysInstanced(GL_TRIANGLES,0,36,mNumInstances);
+        glDrawArraysInstanced(GL_TRIANGLES,0,mNumElements,mNumInstances);
         glBindVertexArray(0);
     }
 }

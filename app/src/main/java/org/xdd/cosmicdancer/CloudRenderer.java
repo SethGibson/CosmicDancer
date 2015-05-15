@@ -110,7 +110,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mCloudProgID = mCloudMgr.CreateProgram();
         mInstanceVboID = mCloudMgr.CreateInstanceBuffer(instanceData);
 
-        float[] meshData = SceneManager.GetPlaneVerts();
+        float[] meshData = SceneManager.GetCubeVerts();
         mCloudVaoID = mCloudMgr.CreateMeshBuffer(meshData,mInstanceVboID);
     }
 
