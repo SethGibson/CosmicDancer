@@ -109,13 +109,26 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
         mCloudProgID = mCloudMgr.CreateProgram();
 
+        int numCirclePoints = 16;
+        float[] meshData = new float[(numCirclePoints+1)*6];
+        byte[] indexData = new byte[numCirclePoints*3];
+        SceneManager.GetCircleVerts(numCirclePoints, meshData, indexData);
+
+        int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
+        int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
+        int indexVBO = mCloudMgr.CreateElementBuffer(indexData, GL_STATIC_DRAW);
+        int elementCount = meshData.length/6;
+        int instanceCount = instanceData.length/7;
+        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, indexVBO, mCloudProgID);
+        /*
         float[] meshData = SceneManager.GetCubeVerts();
         int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
         int elementCount = meshData.length/6;
         int instanceCount = instanceData.length/7;
 
-        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, -1,mCloudProgID);
+        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, -1, mCloudProgID);
+        */
     }
 
     @Override

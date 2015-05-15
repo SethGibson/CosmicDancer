@@ -125,6 +125,7 @@ public class SceneManager
         float interval = 360.0f/pNumPoints;
 
         vertices[0]=0.0f;vertices[1]=0.0f;vertices[2]=0.0f;
+        vertices[3]=0.0f;vertices[4]=0.0f;vertices[5]=1.0f;
         for(int i=1;i<=pNumPoints;++i)
         {
             float angle = (float)i*interval;
