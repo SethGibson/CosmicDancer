@@ -18,10 +18,9 @@ void main()
 {
     Color = iColor;
 
-    vec4 finalPosition = (vec4(vPosition.xyz*vec3(iSize),1.0)+vec4(iPosition,1.0));
+    vec3 finalPosition = vPosition.xyz*vec3(iSize)+iPosition;
 
-    Normal = mat3(uNormalMatrix) * vNormal;
-    WorldPos = vec3(uModelMatrix*finalPosition);
-
-    gl_Position = uProjMatrix*uViewMatrix*uModelMatrix*finalPosition;
+    Normal = vec3(uViewMatrix*uModelMatrix*vec4(vNormal,0.0));
+    WorldPos = vec3(uViewMatrix*uModelMatrix*vPosition);
+    gl_Position = uProjMatrix*uViewMatrix*uModelMatrix*vec4(finalPosition,1.0);
 }

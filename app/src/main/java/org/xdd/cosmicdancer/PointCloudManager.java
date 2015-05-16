@@ -8,6 +8,7 @@ package org.xdd.cosmicdancer;
         import java.nio.ByteBuffer;
         import java.nio.ByteOrder;
         import java.nio.FloatBuffer;
+        import java.nio.IntBuffer;
 
 public class PointCloudManager
 {
@@ -20,6 +21,7 @@ public class PointCloudManager
         public int  GlslProgram;
         public int  ElementCount;
         public int  InstanceCount;
+        public int  IndexType;
 
         public CloudData()
         {
@@ -29,9 +31,10 @@ public class PointCloudManager
             IndexVBO = -1;
             GlslProgram = -1;
             ElementCount = -1;
+            IndexType = -1;
         }
 
-        public CloudData(int pVAO, int pMeshID, int pNumElem, int pInstID, int pNumInst, int pIndexID, int pProgID)
+        public CloudData(int pVAO, int pMeshID, int pNumElem, int pInstID, int pNumInst, int pIndexID, int pProgID, int pIndexType)
         {
             CloudVAO = pVAO;
             MeshVBO = pMeshID;
@@ -40,6 +43,7 @@ public class PointCloudManager
             GlslProgram = pProgID;
             ElementCount = pNumElem;
             InstanceCount = pNumInst;
+            IndexType = pIndexType;
         }
     };
 
@@ -77,6 +81,7 @@ public class PointCloudManager
     private static int      S_SIZE_NORM = 3;
     private static int      S_SIZE_SCALE = 1;
     private static int      S_SIZE_FLOAT = 4;
+    private static int      S_SIZE_INT = 4;
     private static int      S_VERTEX_STRIDE;
     private static int      S_INSTANCE_STRIDE;
 
@@ -144,7 +149,7 @@ public class PointCloudManager
         return vboID[0];
     }
 
-    public int CreateElementBuffer(byte[] pData, int pUsage)
+    public int CreateElementByteBuffer(byte[] pData, int pUsage)
     {
         ByteBuffer dataBuffer = ByteBuffer.allocateDirect(pData.length)
                 .put(pData);
@@ -159,7 +164,24 @@ public class PointCloudManager
         return vboID[0];
     }
 
-    public CloudData CreatePointCloud(int pMeshVBO, int pNumElems, int pInstanceVBO, int pNumInst, int pIndexVBO, int pProg)
+    public int CreateElementIntBuffer(int[] pData, int pUsage)
+    {
+        IntBuffer dataBuffer = ByteBuffer.allocateDirect(pData.length*S_SIZE_INT)
+                                            .order(ByteOrder.nativeOrder())
+                                            .asIntBuffer();
+        dataBuffer.put(pData);
+        dataBuffer.position(0);
+
+        int[] vboID = new int[1];
+        glGenBuffers(1,vboID,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID[0]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pData.length*S_SIZE_INT, dataBuffer, pUsage);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+
+        return vboID[0];
+    }
+
+    public CloudData CreatePointCloud(int pMeshVBO, int pNumElems, int pInstanceVBO, int pNumInst, int pIndexVBO, int pProg, int pIndexType)
     {
         int elementCount = pNumElems;
         if(pIndexVBO>=0)
@@ -193,7 +215,7 @@ public class PointCloudManager
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-        return new CloudData(cVaoID[0],pMeshVBO, elementCount, pInstanceVBO, pNumInst, pIndexVBO,pProg);
+        return new CloudData(cVaoID[0],pMeshVBO, elementCount, pInstanceVBO, pNumInst, pIndexVBO,pProg,pIndexType);
     }
 
     public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
@@ -213,7 +235,9 @@ public class PointCloudManager
         perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
 
         setIdentityM(mNormMatrix, 0);
-        invertM(mNormMatrix,0,mModelMatrix,0);
+        multiplyMM(mNormMatrix,0,mViewMatrix,0,mModelMatrix,0);
+        invertM(mNormMatrix, 0, mNormMatrix, 0);
+        transposeM(mNormMatrix,0,mNormMatrix,0);
     }
 
     public void DrawCloud(CloudData pCloudData, float[] pLightPos)
@@ -222,7 +246,7 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
         glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
         glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
-        glUniformMatrix4fv(mLocNormM, 1, true, mNormMatrix, 0);
+        glUniformMatrix4fv(mLocNormM, 1, false, mNormMatrix, 0);
         glUniform3fv(mLocLightPos,1,pLightPos,0);
 
         glBindVertexArray(pCloudData.CloudVAO);
@@ -230,7 +254,7 @@ public class PointCloudManager
         if(pCloudData.IndexVBO>=0)
         {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
-            glDrawElementsInstanced(GL_TRIANGLES,pCloudData.ElementCount,GL_UNSIGNED_BYTE,0,pCloudData.InstanceCount);
+            glDrawElementsInstanced(GL_TRIANGLES,pCloudData.ElementCount,pCloudData.IndexType,0,pCloudData.InstanceCount);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
         else

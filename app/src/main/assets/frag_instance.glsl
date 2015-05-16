@@ -7,7 +7,8 @@ varying vec3 WorldPos;
 
 void main()
 {
+    vec3 normal = normalize(Normal);
     vec3 lightDir = normalize(uLightPos-WorldPos);
-    float diffContrib = max(dot(Normal,lightDir),0.0);
-    gl_FragColor = max(Color*diffContrib,(Color*0.25));
+    float diffContrib = max(dot(normal,lightDir),0.0);
+    gl_FragColor = Color*diffContrib+Color*0.2;
 }

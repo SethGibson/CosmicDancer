@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Point;
 import android.opengl.GLSurfaceView;
 import android.os.SystemClock;
+import android.transition.Scene;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
@@ -22,13 +23,15 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public ShaderManager        mShaderMgr;
 
     //Skybox
+    private int                 S_NUM_CUBEMAPS = 5;
+    private int                 S_TRANS_TIME_MILLIS = 5000;
     public SkyboxManager        mSkyboxMgr;
-    private int                 mSkyboxProgID;
-    private int[]               mSkyboxTexIDs = new int[5];
     private int                 mSkyboxVaoID;
+    private int                 mSkyboxProgID;
+    private int[]               mSkyboxTexIDs = new int[S_NUM_CUBEMAPS];
+    private int                 mSkyboxCurrentID = 0;
 
-    private float               mYAngle = 0f;
-    private float               mYRate = 0.2f;
+
 
     //Pointcloud
     public PointCloudManager    mCloudMgr;
@@ -53,18 +56,19 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         Point cSize = new Point();
         cDisp.getSize(cSize);
         mAspect = (float)cSize.x/(float)cSize.y;
+        mStartTime = System.currentTimeMillis();
     }
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config)
     {
         glClearColor(0.25f, 0.25f, 0.25f, 1f);
-        mCamera = new SceneManager.Camera(  0, 0, 25,
+        mCamera = new SceneManager.Camera(  0, 0, 40,
                                             0, 0, 0,
                                             0, 1, 0,
                                             0.1f,500.0f,
                                             45.0f);
-        mLightPosition[0] = 0;mLightPosition[1] = 10;mLightPosition[2] = 10;
+        mLightPosition[0] = 0;mLightPosition[1] = 0;mLightPosition[2] = 40;
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
@@ -96,24 +100,29 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
         mCloudProgID = mCloudMgr.CreateProgram();
 
-        int numCirclePoints = 16;
-        float[] meshData = new float[(numCirclePoints+1)*6];
-        byte[] indexData = new byte[numCirclePoints*3];
-        SceneManager.GetCircleVerts(numCirclePoints, meshData, indexData);
+        int subdAxis = 16;
+        int subdHeight = 16;
+        float radius = 1.0f;
+        float[] meshData = new float[subdAxis*subdHeight*6];
+        int[] indexData = new int[(subdAxis*subdHeight+subdAxis)*6];
+        //SceneManager.GetCircleVerts(numCirclePoints, meshData, indexData);
+        SceneManager.GetSphereVerts(meshData,indexData,radius,subdAxis,subdHeight);
 
         int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
-        int indexVBO = mCloudMgr.CreateElementBuffer(indexData, GL_STATIC_DRAW);
-        int elementCount = meshData.length/6;
+        int indexVBO = mCloudMgr.CreateElementIntBuffer(indexData, GL_STATIC_DRAW);
+        int elementCount = meshData.length;
         int instanceCount = instanceData.length/7;
-        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, indexVBO, mCloudProgID);
+        mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, indexVBO, mCloudProgID, GL_UNSIGNED_INT);
+
         /*
-        float[] meshData = SceneManager.GetCubeVerts();
+        float[] meshData = new float[60*6];
+        SceneManager.GetHedronVerts(meshData);
+        //float[] meshData = SceneManager.GetCubeVerts();
         int meshVBO = mCloudMgr.CreateArrayBuffer(meshData, GL_STATIC_DRAW);
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
         int elementCount = meshData.length/6;
         int instanceCount = instanceData.length/7;
-
         mPointCloud = mCloudMgr.CreatePointCloud(meshVBO, elementCount, instanceVBO, instanceCount, -1, mCloudProgID);
         */
     }
@@ -129,10 +138,16 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public void onDrawFrame(GL10 gl)
     {
         long sysTime = System.nanoTime();
+        long elapsedTime = System.currentTimeMillis() - mStartTime;
+        if(elapsedTime>S_TRANS_TIME_MILLIS)
+        {
+            mStartTime = System.currentTimeMillis();
+            mSkyboxCurrentID = (mSkyboxCurrentID+1)%S_NUM_CUBEMAPS;
+        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mSkyboxMgr.SetMatrices(mAspect, 45.0f, 0.1f, 10.0f, new float[]{0, 0, 0});
-        mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[0]);
+        mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[mSkyboxCurrentID]);
 
         float xAngle = sysTime*0.00000002f;
         float yAngle = sysTime*0.00000004f;
@@ -145,10 +160,51 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public void SetupSkyboxes()
     {
         //load textures
+        //morning
         int[] skyboxIds = new int[]
                 {
-                        R.drawable.01_px,
-                }
+                        R.drawable.px01,R.drawable.nx01,
+                        R.drawable.py01,R.drawable.ny01,
+                        R.drawable.pz01,R.drawable.nz01
+                };
+        mSkyboxTexIDs[0] = mSkyboxMgr.CreateCubemap(skyboxIds);
+
+        //midday
+        skyboxIds = new int[]
+                {
+                        R.drawable.px02,R.drawable.nx02,
+                        R.drawable.py02,R.drawable.ny02,
+                        R.drawable.pz02,R.drawable.nz02
+                };
+        mSkyboxTexIDs[1] = mSkyboxMgr.CreateCubemap(skyboxIds);
+
+        //dusk
+        skyboxIds = new int[]
+                {
+                        R.drawable.px03,R.drawable.nx03,
+                        R.drawable.py03,R.drawable.ny03,
+                        R.drawable.pz03,R.drawable.nz03
+                };
+        mSkyboxTexIDs[2] = mSkyboxMgr.CreateCubemap(skyboxIds);
+
+        //evening
+        skyboxIds = new int[]
+                {
+                        R.drawable.px04,R.drawable.nx04,
+                        R.drawable.py04,R.drawable.ny04,
+                        R.drawable.pz04,R.drawable.nz04
+                };
+        mSkyboxTexIDs[3] = mSkyboxMgr.CreateCubemap(skyboxIds);
+
+        //stars
+        skyboxIds = new int[]
+                {
+                        R.drawable.px05,R.drawable.nx05,
+                        R.drawable.py05,R.drawable.ny05,
+                        R.drawable.pz05,R.drawable.nz05
+                };
+        mSkyboxTexIDs[4] = mSkyboxMgr.CreateCubemap(skyboxIds);
+
 
         //setup program
         mSkyboxProgID = mSkyboxMgr.CreateProgram();
