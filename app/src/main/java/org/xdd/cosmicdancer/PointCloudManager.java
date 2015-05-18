@@ -50,28 +50,28 @@ public class PointCloudManager
     private Context         mContext;
     private ShaderManager   mShaderMgr;
 
-    private final String    mUniformModelM = "uModelMatrix";
-    private int             mLocModelM;
-    private final String    mUniformViewM = "uViewMatrix";
-    private int             mLocViewM;
-    private final String    mUniformProjM = "uProjMatrix";
-    private int             mLocProjM;
-    private final String    mUniformNormM = "uNormalMatrix";
-    private int             mLocNormM;
-
-    private final String    mUniformLightPos = "uLightPos";
-    private int             mLocLightPos;
+    private final String    mUniformModel = "uModelMatrix";
+    private final String    mUniformView = "uViewMatrix";
+    private final String    mUniformProj = "uProjMatrix";
+    private final String    mUniformLight = "uLightPos";
+    private final String    mUniformEye = "uEyePos";
+    private final String    mUniformCubemapIn = "uCubemapInSampler";
+    private int             mLocModel;
+    private int             mLocView;
+    private int             mLocProj;
+    private int             mLocLight;
+    private int             mLocEye;
+    private int             mLocCube;
 
     private final String    mAttribPos = "vPosition";
-    private int             mLocPos;
     private final String    mAttribNorm = "vNormal";
-    private int             mLocNorm;
-
     private final String    mAttribIPos = "iPosition";
-    private int             mLocIPos;
     private final String    mAttribIColor = "iColor";
-    private int             mLocIColor;
     private final String    mAttribISize = "iSize";
+    private int             mLocPos;
+    private int             mLocNorm;
+    private int             mLocIPos;
+    private int             mLocIColor;
     private int             mLocISize;
 
     private FloatBuffer     mInstanceData;
@@ -107,20 +107,21 @@ public class PointCloudManager
         S_VERTEX_STRIDE = mVertexSize*S_SIZE_FLOAT;
     }
 
-    public int CreateProgram()
+    public int CreateProgram(String pVertexShader, String pFragmentShader)
     {
-        int vertID = mShaderMgr.CreateShader("vertex_instance.glsl", GL_VERTEX_SHADER);
-        int fragID = mShaderMgr.CreateShader("frag_instance.glsl", GL_FRAGMENT_SHADER);
+        int vertID = mShaderMgr.CreateShader(pVertexShader, GL_VERTEX_SHADER);
+        int fragID = mShaderMgr.CreateShader(pFragmentShader, GL_FRAGMENT_SHADER);
         int programID = mShaderMgr.CreateProgram(vertID, fragID);
 
         glUseProgram(programID);
 
         //get uniforms
-        mLocModelM = glGetUniformLocation(programID, mUniformModelM);
-        mLocViewM = glGetUniformLocation(programID, mUniformViewM);
-        mLocProjM = glGetUniformLocation(programID, mUniformProjM);
-        mLocNormM = glGetUniformLocation(programID, mUniformNormM);
-        mLocLightPos = glGetUniformLocation(programID, mUniformLightPos);
+        mLocModel = glGetUniformLocation(programID, mUniformModel);
+        mLocView = glGetUniformLocation(programID, mUniformView);
+        mLocProj = glGetUniformLocation(programID, mUniformProj);
+        mLocLight = glGetUniformLocation(programID, mUniformLight);
+        mLocEye = glGetUniformLocation(programID, mUniformEye);
+        mLocCube = glGetUniformLocation(programID, mUniformCubemapIn);
 
         //get attributes
         mLocPos = glGetAttribLocation(programID, mAttribPos);
@@ -234,32 +235,33 @@ public class PointCloudManager
         setIdentityM(mProjMatrix, 0);
         perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
 
-        setIdentityM(mNormMatrix, 0);
-        multiplyMM(mNormMatrix,0,mViewMatrix,0,mModelMatrix,0);
-        invertM(mNormMatrix, 0, mNormMatrix, 0);
-        transposeM(mNormMatrix,0,mNormMatrix,0);
     }
 
-    public void DrawCloud(CloudData pCloudData, float[] pLightPos)
+    public void DrawCloud(CloudData pCloudData, float[] pLightPos, float[] pEyePos, int pSkyboxTexID)
     {
         glUseProgram(pCloudData.GlslProgram);
-        glUniformMatrix4fv(mLocModelM, 1, false, mModelMatrix, 0);
-        glUniformMatrix4fv(mLocViewM, 1, false, mViewMatrix, 0);
-        glUniformMatrix4fv(mLocProjM, 1, false, mProjMatrix, 0);
-        glUniformMatrix4fv(mLocNormM, 1, false, mNormMatrix, 0);
-        glUniform3fv(mLocLightPos,1,pLightPos,0);
+        glUniformMatrix4fv(mLocModel, 1, false, mModelMatrix, 0);
+        glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocProj, 1, false, mProjMatrix, 0);
+        glUniform3fv(mLocLight, 1, pLightPos, 0);
+        glUniform3fv(mLocEye, 1, pEyePos, 0);
 
+        if(pSkyboxTexID>0) {
+            glUniform1i(mLocCube, 0);
+            glActiveTexture(0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
+        }
         glBindVertexArray(pCloudData.CloudVAO);
-
         if(pCloudData.IndexVBO>=0)
         {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
-            glDrawElementsInstanced(GL_TRIANGLES,pCloudData.ElementCount,pCloudData.IndexType,0,pCloudData.InstanceCount);
+            glDrawElementsInstanced(GL_TRIANGLES, pCloudData.ElementCount, pCloudData.IndexType, 0, pCloudData.InstanceCount);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
         else
             glDrawArraysInstanced(GL_TRIANGLES,0,pCloudData.ElementCount,pCloudData.InstanceCount);
         glBindVertexArray(0);
-
+        if(pSkyboxTexID>0)
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 }
