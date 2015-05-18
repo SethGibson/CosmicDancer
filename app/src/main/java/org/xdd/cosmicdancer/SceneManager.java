@@ -199,6 +199,7 @@ public class SceneManager
             float yStep = dy/(float)pSubdHeight;
             float phi = (float)(yStep*Math.PI);
 
+            //tf
             for(int dx=0;dx<pSubdAxis;++dx)
             {
                 float xStep = dx/(float)pSubdAxis;
