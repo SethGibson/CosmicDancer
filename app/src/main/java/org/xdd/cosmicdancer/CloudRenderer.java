@@ -146,7 +146,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mSkyboxMgr.SetMatrices(mAspect, 45.0f, 0.1f, 10.0f, new float[]{0, 0, 0});
+        mSkyboxMgr.SetMatrices(mCamera, mAspect, new float[]{0, 0, 0});
         mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[mSkyboxCurrentID]);
 
         float xAngle = sysTime*0.00000002f;
@@ -207,7 +207,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
 
         //setup program
-        mSkyboxProgID = mSkyboxMgr.CreateProgram();
+        mSkyboxProgID = mSkyboxMgr.CreateProgram("vertex_skybox.glsl", "frag_skybox.glsl");
         mSkyboxVaoID = mSkyboxMgr.CreateSkyboxMesh();
     }
 }

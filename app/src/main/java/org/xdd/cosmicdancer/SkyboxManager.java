@@ -24,11 +24,22 @@ public class SkyboxManager
     private static int      S_SIZE_POS = 3;
     private static int      S_BUFFER_SIZE;
 
-    private float[]         mMatVP = new float[16];
-    private final String    mUniformVP = "mViewProjection";
-    private int             mLocVP;
-    private final String    mUniformCube = "mSamplerCube";
-    private int             mLocCube;
+    private float[]         mModelMatrix = new float[16];
+    private float[]         mViewMatrix = new float[16];
+    private float[]         mProjMatrix = new float[16];
+    private final String    mUniformModel = "uModelMatrix";
+    private final String    mUniformView = "uViewMatrix";
+    private final String    mUniformProj="uProjMatrix";
+    private final String    mUniformCubeIn = "uCubemapInSampler";
+    private final String    mUniformCubeOut = "uCubemapOutSampler";
+    private final String    mUniformBlendFactor = "uBlendFactor";
+    private int             mLocModel;
+    private int             mLocView;
+    private int             mLocProj;
+    private int             mLocCubeIn;
+    private int             mLocCubeOut;
+    private int             mLocCubeBlend;
+
     private final String    mAttribPos = "vPosition";
     private int             mLocPos;
 
@@ -89,30 +100,22 @@ public class SkyboxManager
         mSkyboxBuffer.position(0);
     }
 
-    public int CreateProgram()
+    public int CreateProgram(String pVertShader, String pFragShader)
     {
-        int skyVertID = mShaderMgr.CreateShader("vertex_skybox.glsl", GL_VERTEX_SHADER);
-        int skyFragID = mShaderMgr.CreateShader("frag_skybox.glsl", GL_FRAGMENT_SHADER);
+        int skyVertID = mShaderMgr.CreateShader(pVertShader, GL_VERTEX_SHADER);
+        int skyFragID = mShaderMgr.CreateShader(pFragShader, GL_FRAGMENT_SHADER);
         int programID = mShaderMgr.CreateProgram(skyVertID, skyFragID);
         if(programID==0){
             return 0;
         }
         glUseProgram(programID);
 
-        mLocVP = glGetUniformLocation(programID, mUniformVP);
-        mLocCube = glGetUniformLocation(programID, mUniformCube);
+        mLocModel = glGetUniformLocation(programID, mUniformModel);
+        mLocView = glGetUniformLocation(programID, mUniformView);
+        mLocProj = glGetUniformLocation(programID, mUniformProj);
+        mLocCubeIn = glGetUniformLocation(programID, mUniformCubeIn);
+        mLocCubeOut = glGetUniformLocation(programID, mUniformCubeOut);
         mLocPos = glGetAttribLocation(programID, mAttribPos);
-
-        if(mLocCube<0||mLocVP<0)
-        {
-            Log.e("CreateProgram", "Error querying attribute locations");
-            if(mLocCube<0)
-                Log.e("CreateProgram", "Can't get location for "+mUniformCube);
-            if(mLocVP<0)
-                Log.e("CreateProgram", "Can't get location for "+mUniformVP);
-            return 0;
-        }
-
         return programID;
     }
 
@@ -177,19 +180,18 @@ public class SkyboxManager
     }
 
 
-    public void SetMatrices(float pAspect, float pFOV, float pNear, float pFar, float[] pViewRot)
+    public void SetMatrices(SceneManager.Camera pCamera, float mAspect, float[] pViewRot)
     {
-        float[] cView = new float[16];
-        float[] cProj = new float[16];
+        setIdentityM(mModelMatrix,0);
+        translateM(mModelMatrix,0,0,0,0);
 
         //sky matrix
-        setIdentityM(cView, 0);
-        rotateM(cView, 0, pViewRot[0], 1f, 0f, 0f);
-        rotateM(cView, 0, pViewRot[1], 0f, 1f, 0f);
-        rotateM(cView, 0, pViewRot[2], 0f, 0f, 1f);
+        setIdentityM(mViewMatrix, 0);
+        rotateM(mViewMatrix, 0, pViewRot[0], 1f, 0f, 0f);
+        rotateM(mViewMatrix, 0, pViewRot[1], 0f, 1f, 0f);
+        rotateM(mViewMatrix, 0, pViewRot[2], 0f, 0f, 1f);
 
-        perspectiveM(cProj, 0, pFOV, pAspect, pNear, pFar);
-        multiplyMM(mMatVP, 0, cProj, 0, cView, 0);
+        perspectiveM(mProjMatrix, 0, pCamera.FOV, mAspect, pCamera.NearClip, pCamera.FarClip);
     }
 
     public void DrawSkybox(int pVaoID, int pProgID, int pCubemapID)
@@ -197,13 +199,45 @@ public class SkyboxManager
         glDisable(GL_DEPTH_TEST);
 
         glUseProgram(pProgID);
-        glUniformMatrix4fv(mLocVP, 1, false, mMatVP, 0);
+        glUniformMatrix4fv(mLocModel, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocProj, 1, false, mViewMatrix, 0);
+
+
         glActiveTexture(GL_TEXTURE0);
-        glUniform1i(mLocCube, 0);
+        glUniform1i(mLocCubeIn, 0);
 
         glBindVertexArray(pVaoID);
         glBindTexture(GL_TEXTURE_CUBE_MAP, pCubemapID);
-        glDrawArrays(GL_TRIANGLES,0,36);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glBindVertexArray(0);
+
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    public void DrawSkyboxBlended(int pVaoID, int pProgID, int pCubemapInID, int pCubemapOutID, float pFactor)
+    {
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(pProgID);
+        glUniformMatrix4fv(mLocModel, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
+        glUniformMatrix4fv(mLocProj, 1, false, mViewMatrix, 0);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(mLocCubeIn, 0);
+        glUniform1i(mLocCubeOut, 1);
+        glUniform1f(mLocCubeBlend, pFactor);
+        glBindVertexArray(pVaoID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pCubemapInID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pCubemapOutID);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
         glBindVertexArray(0);
 
         glEnable(GL_DEPTH_TEST);

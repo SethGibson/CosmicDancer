@@ -1,8 +1,9 @@
 precision mediump float;
-uniform samplerCube mSamplerCube;
-varying vec3 oPosition;
+uniform samplerCube uCubemapInSampler;
+
+varying vec3 LookupVector;
 
 void main()
 {
-    gl_FragColor = textureCube(mSamplerCube, oPosition);
+    gl_FragColor = textureCube(uCubemapInSampler, LookupVector);
 }
