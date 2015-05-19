@@ -92,7 +92,7 @@ public class SceneManager
         return meshData;
     }
 
-    public static void GetHedronVerts(float pMeshData[])
+    public static float[] GetHedronVerts()
     {
         final int S_NUM_VERTS = 60;
 
@@ -183,7 +183,7 @@ public class SceneManager
             vertices[m*6+5] = normals[m*3+2];
         }
 
-        System.arraycopy(vertices,0,pMeshData,0,vertices.length);
+        return vertices;
     }
 
     public static void GetSphereVerts(float[] pMeshData, int[] pIndexData, float pRadius, int pSubdAxis, int pSubdHeight)

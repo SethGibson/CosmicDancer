@@ -246,11 +246,10 @@ public class PointCloudManager
         glUniform3fv(mLocLight, 1, pLightPos, 0);
         glUniform3fv(mLocEye, 1, pEyePos, 0);
 
-        if(pSkyboxTexID>0) {
-            glUniform1i(mLocCube, 0);
-            glActiveTexture(0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
-        }
+        glUniform1i(mLocCube, 0);
+        glActiveTexture(0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
+
         glBindVertexArray(pCloudData.CloudVAO);
         if(pCloudData.IndexVBO>=0)
         {
@@ -261,7 +260,7 @@ public class PointCloudManager
         else
             glDrawArraysInstanced(GL_TRIANGLES,0,pCloudData.ElementCount,pCloudData.InstanceCount);
         glBindVertexArray(0);
-        if(pSkyboxTexID>0)
-            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glUseProgram(0);
     }
 }
