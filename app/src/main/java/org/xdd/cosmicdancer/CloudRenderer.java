@@ -31,8 +31,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     private int[]               mSkyboxTexIDs = new int[S_NUM_CUBEMAPS];
     private int                 mSkyboxCurrentID = 0;
 
-
-
     //Pointcloud
     public PointCloudManager    mCloudMgr;
     private int                 mCloudProgID;
