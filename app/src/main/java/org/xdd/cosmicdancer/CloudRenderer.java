@@ -33,8 +33,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
     //Pointcloud
     public PointCloudManager                mCloudMgr;
-    private PointCloudManager.CloudData[]   mPointClouds = new PointCloudManager.CloudData[S_NUM_CUBEMAPS];
-    private int                             mPointCloudID = 0;
+    private PointCloudManager.CloudData     mPointCloud;
 
     //Misc world stuff
     private float               mAspect;
@@ -90,7 +89,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         {
             mStartTime = System.currentTimeMillis();
             mSkyboxCurrentID = (mSkyboxCurrentID+1)%S_NUM_CUBEMAPS;
-            mPointCloudID = (mPointCloudID+1)%S_NUM_CUBEMAPS;
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -102,7 +100,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         float zAngle = sysTime*0.00000001f;
 
         mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle, yAngle, zAngle});
-        mCloudMgr.DrawCloud(mPointClouds[2], mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
+        mCloudMgr.DrawCloud(mPointCloud, mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
     }
 
     public void SetupSkyboxes()
@@ -173,29 +171,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
         int instanceCount = instanceData.length/7;
         //setup materials
-        int cubesProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_refract.glsl");
-        int hedronsProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_reflect.glsl");
         int spheresProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_carpaint.glsl");
-
-        //create cube cloud
-        float[] cubeMeshData = SceneManager.GetCubeVerts();
-        int cubeMeshVBO = mCloudMgr.CreateArrayBuffer(cubeMeshData,GL_STATIC_DRAW);
-        int cubeElementCount = cubeMeshData.length/6;
-        mPointClouds[0] = mCloudMgr.CreatePointCloud(cubeMeshVBO,
-                                                        cubeElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        -1,cubesProgID,-1);
-
-        //create hedrons cloud
-        float[] hedronMeshData = SceneManager.GetHedronVerts();
-        int hedronMeshVBO = mCloudMgr.CreateArrayBuffer(hedronMeshData, GL_STATIC_DRAW);
-        int hedronMeshElementCount = hedronMeshData.length/6;
-        mPointClouds[1] = mCloudMgr.CreatePointCloud(hedronMeshVBO,
-                                                        hedronMeshElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        -1,hedronsProgID,-1);
 
         //create spheres cloud
         int subdAxis = 8;
@@ -208,7 +184,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         int sphereIndexVBO = mCloudMgr.CreateElementIntBuffer(sphereIndexData, GL_STATIC_DRAW);
         int sphereElementCount = sphereMeshData.length;
 
-        mPointClouds[2] = mCloudMgr.CreatePointCloud(sphereMeshVBO,
+        mPointCloud = mCloudMgr.CreatePointCloud(sphereMeshVBO,
                                                         sphereElementCount,
                                                         instanceVBO,
                                                         instanceCount,
