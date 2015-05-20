@@ -3,7 +3,6 @@ uniform samplerCube uCubemapInSampler;
 uniform vec3 uLightPos;
 uniform vec3 uEyePos;
 
-varying vec4 Color;
 varying vec3 FragPos;
 varying vec3 Normal;
 

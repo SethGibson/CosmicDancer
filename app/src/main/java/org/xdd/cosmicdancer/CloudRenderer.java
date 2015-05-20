@@ -147,7 +147,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         float step = (bound*2.0f)/(float)numElements;
 
         //setup instance data
-        float[] instanceData = new float[numElements*numElements*numElements*7];
+        float[] instanceData = new float[numElements*numElements*numElements*3];
         int id = 0;
         for(int px=0;px<numElements;++px)
         {
@@ -161,22 +161,18 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                     instanceData[id++] = xPos;
                     instanceData[id++] = yPos;
                     instanceData[id++] = zPos;
-                    instanceData[id++] = 0.0f;
-                    instanceData[id++] = rgbGen.nextFloat();
-                    instanceData[id++] = rgbGen.nextFloat();
-                    instanceData[id++] = Math.max(rgbGen.nextFloat(), 1.0f/(float)numElements);
                 }
             }
         }
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
-        int instanceCount = instanceData.length/7;
+        int instanceCount = instanceData.length/3;
         //setup materials
         int spheresProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_carpaint.glsl");
 
         //create spheres cloud
         int subdAxis = 8;
         int subdHeight = 8;
-        float radius = 1.0f;
+        float radius = step*0.5f;
         float[] sphereMeshData = new float[subdAxis*subdHeight*6];
         int[] sphereIndexData = new int[(subdAxis*subdHeight+subdAxis)*6];
         SceneManager.GetSphereVerts(sphereMeshData,sphereIndexData,radius,subdAxis,subdHeight);
