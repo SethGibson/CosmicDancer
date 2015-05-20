@@ -14,7 +14,7 @@ void main()
     vec3 viewDir = normalize(uEyePos-FragPos.xyz);
     vec3 lightReflect = normalize(reflect(-lightDir,normal));
 
-    float refrIndex = 1.0/2.42;
+    float refrIndex = 1.0/1.33;
     vec3 I = normalize(FragPos.xyz-uEyePos);
     vec3 viewRefract = normalize(refract(I,normal,refrIndex));
 

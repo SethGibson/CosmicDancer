@@ -19,10 +19,9 @@ void main()
 
     float diffContrib = max(dot(normal, lightDir), 0.0);
     float specContrib = max( pow( dot(viewDir, lightReflect), 8.0), 0.0);
-    float fresContrib = 1.0-pow( max(dot(viewDir, normal), 0.0), 1.0);
+    float fresContrib = 1.0-pow( max(dot(viewDir, normal), 0.0), 1.25);
     vec4 reflSample = textureCube(uCubemapInSampler, viewReflect);
-    vec3 reflContrib = reflSample.rgb*0.1;
-    vec3 hiLite = mix(reflContrib, vec3(0.55), fresContrib);
+    vec3 reflContrib = reflSample.rgb*diffContrib;
 
-    gl_FragColor = vec4(Color.rgb*diffContrib+specContrib+hiLite,1.0);
+    gl_FragColor = vec4(reflContrib+(specContrib*0.4)+(fresContrib*0.75),1.0);
 }

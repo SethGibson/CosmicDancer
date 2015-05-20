@@ -18,12 +18,12 @@ void main()
     vec3 viewReflect = normalize(reflect(I,normal));
 
     vec4 reflSample = textureCube(uCubemapInSampler, viewReflect);
-    vec3 reflContrib = reflSample.rgb*0.5;
+    vec3 reflContrib = reflSample.rgb*0.85;
     float diffTerm = max(dot(normal, lightDir), 0.0);
     float specTerm = max( pow( dot(viewDir, lightReflect), 8.0), 0.0);
 
-    vec3 diffContrib = Color.rgb*diffTerm;
+    vec3 diffContrib = Color.rgb*0.01*diffTerm;
     vec3 specContrib = reflSample.rgb*specTerm;
 
-    gl_FragColor = vec4(diffContrib+specContrib+reflContrib,1.0);
+    gl_FragColor = vec4(reflSample.rgb+specContrib,1.0);
 }
