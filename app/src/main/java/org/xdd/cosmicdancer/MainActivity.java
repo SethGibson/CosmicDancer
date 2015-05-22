@@ -7,16 +7,15 @@ import android.os.Bundle;
 public class MainActivity extends Activity
 {
 
-    private GLSurfaceView mMainView;
+    private CloudSurfaceView mMainView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
 
-        mMainView = new GLSurfaceView(this);
-        mMainView.setEGLContextClientVersion(3);
-        mMainView.setRenderer(new CloudRenderer(this));
+        mMainView = new CloudSurfaceView(this);
+        mMainView.initView();
 
         setContentView(mMainView);
     }

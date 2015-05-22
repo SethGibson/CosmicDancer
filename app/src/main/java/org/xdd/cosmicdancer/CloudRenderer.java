@@ -23,7 +23,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public ShaderManager        mShaderMgr;
 
     //Skybox
-    private int                 S_NUM_CUBEMAPS = 5;
+    private int                 S_NUM_CUBEMAPS = 3;
     private int                 S_TRANS_TIME_MILLIS = 5000;
     public SkyboxManager        mSkyboxMgr;
     private int                 mSkyboxVaoID;
@@ -33,8 +33,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
     //Pointcloud
     public PointCloudManager                mCloudMgr;
-    private PointCloudManager.CloudData[]   mPointClouds = new PointCloudManager.CloudData[S_NUM_CUBEMAPS];
-    private int                             mPointCloudID = 0;
+    private PointCloudManager.CloudData     mPointCloud;
 
     //Misc world stuff
     private float               mAspect;
@@ -90,19 +89,18 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         {
             mStartTime = System.currentTimeMillis();
             mSkyboxCurrentID = (mSkyboxCurrentID+1)%S_NUM_CUBEMAPS;
-            mPointCloudID = (mPointCloudID+1)%S_NUM_CUBEMAPS;
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mSkyboxMgr.SetMatrices(mCamera, mAspect, new float[]{0, 0, 0});
+        mSkyboxMgr.SetMatrices(mCamera, mAspect);
         mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[mSkyboxCurrentID]);
 
         float xAngle = sysTime*0.00000002f;
         float yAngle = sysTime*0.00000004f;
         float zAngle = sysTime*0.00000001f;
 
-        mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle, yAngle, zAngle});
-        mCloudMgr.DrawCloud(mPointClouds[mPointCloudID], mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
+        mCloudMgr.SetMatrix(mCamera, mAspect);
+        mCloudMgr.DrawCloud(mPointCloud, mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
     }
 
     public void SetupSkyboxes()
@@ -118,22 +116,14 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mSkyboxTexIDs[0] = mSkyboxMgr.CreateCubemap(skyboxIds);
 
         //midday
-        skyboxIds = new int[]
-                {
-                        R.drawable.px02,R.drawable.nx02,
-                        R.drawable.py02,R.drawable.ny02,
-                        R.drawable.pz02,R.drawable.nz02
-                };
-        mSkyboxTexIDs[1] = mSkyboxMgr.CreateCubemap(skyboxIds);
 
-        //dusk
         skyboxIds = new int[]
                 {
                         R.drawable.px03,R.drawable.nx03,
                         R.drawable.py03,R.drawable.ny03,
                         R.drawable.pz03,R.drawable.nz03
                 };
-        mSkyboxTexIDs[2] = mSkyboxMgr.CreateCubemap(skyboxIds);
+        mSkyboxTexIDs[1] = mSkyboxMgr.CreateCubemap(skyboxIds);
 
         //evening
         skyboxIds = new int[]
@@ -142,17 +132,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                         R.drawable.py04,R.drawable.ny04,
                         R.drawable.pz04,R.drawable.nz04
                 };
-        mSkyboxTexIDs[3] = mSkyboxMgr.CreateCubemap(skyboxIds);
-
-        //stars
-        skyboxIds = new int[]
-                {
-                        R.drawable.px05,R.drawable.nx05,
-                        R.drawable.py05,R.drawable.ny05,
-                        R.drawable.pz05,R.drawable.nz05
-                };
-        mSkyboxTexIDs[4] = mSkyboxMgr.CreateCubemap(skyboxIds);
-
+        mSkyboxTexIDs[2] = mSkyboxMgr.CreateCubemap(skyboxIds);
 
         //setup program
         mSkyboxProgID = mSkyboxMgr.CreateProgram("vertex_skybox.glsl", "frag_skybox.glsl");
@@ -162,12 +142,12 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     void SetupPointClouds()
     {
         Random rgbGen = new Random();
-        int numElements = 6;
+        int numElements = 10;
         float bound = 10.0f;
         float step = (bound*2.0f)/(float)numElements;
 
         //setup instance data
-        float[] instanceData = new float[numElements*numElements*numElements*7];
+        float[] instanceData = new float[numElements*numElements*numElements*3];
         int id = 0;
         for(int px=0;px<numElements;++px)
         {
@@ -181,71 +161,18 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                     instanceData[id++] = xPos;
                     instanceData[id++] = yPos;
                     instanceData[id++] = zPos;
-                    instanceData[id++] = 0.0f;
-                    instanceData[id++] = rgbGen.nextFloat();
-                    instanceData[id++] = rgbGen.nextFloat();
-                    instanceData[id++] = Math.max(rgbGen.nextFloat(), 0.2f);
                 }
             }
         }
         int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
-        int instanceCount = instanceData.length/7;
+        int instanceCount = instanceData.length/3;
         //setup materials
-        int cubesProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_phong.glsl");
-        int planesProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_phong.glsl");
-        int circlesProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_refract.glsl");
-        int hedronsProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_reflect.glsl");
         int spheresProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_carpaint.glsl");
-
-        //create cube cloud
-        float[] cubeMeshData = SceneManager.GetCubeVerts();
-        int cubeMeshVBO = mCloudMgr.CreateArrayBuffer(cubeMeshData,GL_STATIC_DRAW);
-        int cubeElementCount = cubeMeshData.length/6;
-        mPointClouds[0] = mCloudMgr.CreatePointCloud(cubeMeshVBO,
-                                                        cubeElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        -1,cubesProgID,-1);
-
-        //create planes cloud
-        float[] planeMeshData = SceneManager.GetPlaneVerts();
-        int planeMeshVBO = mCloudMgr.CreateArrayBuffer(planeMeshData, GL_STATIC_DRAW);
-        int planeElementCount = planeMeshData.length/6;
-        mPointClouds[1] = mCloudMgr.CreatePointCloud(planeMeshVBO,
-                                                        planeElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        -1,planesProgID,-1);
-        //create circles cloud
-        int circlePoints = 16;
-        float[] circleMeshData = new float[(circlePoints+1)*6];
-        byte[] circleIndexData = new byte[circlePoints*3];
-        SceneManager.GetCircleVerts(circlePoints,circleMeshData,circleIndexData);
-        int circleMeshVBO = mCloudMgr.CreateArrayBuffer(circleMeshData, GL_STATIC_DRAW);
-        int circleIndexVBO = mCloudMgr.CreateElementByteBuffer(circleIndexData, GL_STATIC_DRAW);
-        int circleElementCount = circleIndexData.length;
-        mPointClouds[2] = mCloudMgr.CreatePointCloud(circleMeshVBO,
-                                                        circleElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        circleIndexVBO,
-                                                        circlesProgID,
-                                                        GL_UNSIGNED_BYTE);
-
-        //create hedrons cloud
-        float[] hedronMeshData = SceneManager.GetHedronVerts();
-        int hedronMeshVBO = mCloudMgr.CreateArrayBuffer(hedronMeshData, GL_STATIC_DRAW);
-        int hedronMeshElementCount = hedronMeshData.length/6;
-        mPointClouds[3] = mCloudMgr.CreatePointCloud(hedronMeshVBO,
-                                                        hedronMeshElementCount,
-                                                        instanceVBO,
-                                                        instanceCount,
-                                                        -1,hedronsProgID,-1);
 
         //create spheres cloud
         int subdAxis = 8;
         int subdHeight = 8;
-        float radius = 1.0f;
+        float radius = step*0.5f;
         float[] sphereMeshData = new float[subdAxis*subdHeight*6];
         int[] sphereIndexData = new int[(subdAxis*subdHeight+subdAxis)*6];
         SceneManager.GetSphereVerts(sphereMeshData,sphereIndexData,radius,subdAxis,subdHeight);
@@ -253,7 +180,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         int sphereIndexVBO = mCloudMgr.CreateElementIntBuffer(sphereIndexData, GL_STATIC_DRAW);
         int sphereElementCount = sphereMeshData.length;
 
-        mPointClouds[4] = mCloudMgr.CreatePointCloud(sphereMeshVBO,
+        mPointCloud = mCloudMgr.CreatePointCloud(sphereMeshVBO,
                                                         sphereElementCount,
                                                         instanceVBO,
                                                         instanceCount,

@@ -66,20 +66,12 @@ public class PointCloudManager
     private final String    mAttribPos = "vPosition";
     private final String    mAttribNorm = "vNormal";
     private final String    mAttribIPos = "iPosition";
-    private final String    mAttribIColor = "iColor";
-    private final String    mAttribISize = "iSize";
     private int             mLocPos;
     private int             mLocNorm;
     private int             mLocIPos;
-    private int             mLocIColor;
-    private int             mLocISize;
 
-    private FloatBuffer     mInstanceData;
-    private FloatBuffer     mMeshData;
     private static int      S_SIZE_POS = 3;
-    private static int      S_SIZE_COLOR = 3;
     private static int      S_SIZE_NORM = 3;
-    private static int      S_SIZE_SCALE = 1;
     private static int      S_SIZE_FLOAT = 4;
     private static int      S_SIZE_INT = 4;
     private static int      S_VERTEX_STRIDE;
@@ -88,10 +80,7 @@ public class PointCloudManager
     private float[]         mModelMatrix = new float[16];
     private float[]         mViewMatrix = new float[16];
     private float[]         mProjMatrix = new float[16];
-    private float[]         mNormMatrix = new float[16];
 
-    private int             mNumInstances;
-    private int             mNumElements;
     private int             mInstanceSize;
     private int             mVertexSize;
 
@@ -100,7 +89,7 @@ public class PointCloudManager
         mContext = pContext;
         mShaderMgr = pShaderMgr;
 
-        mInstanceSize = S_SIZE_POS+S_SIZE_COLOR+S_SIZE_SCALE;
+        mInstanceSize = S_SIZE_POS;
         S_INSTANCE_STRIDE = mInstanceSize*S_SIZE_FLOAT;
 
         mVertexSize = S_SIZE_POS+S_SIZE_NORM;
@@ -126,9 +115,7 @@ public class PointCloudManager
         //get attributes
         mLocPos = glGetAttribLocation(programID, mAttribPos);
         mLocNorm  = glGetAttribLocation(programID, mAttribNorm);
-        mLocIColor = glGetAttribLocation(programID, mAttribIColor);
         mLocIPos = glGetAttribLocation(programID, mAttribIPos);
-        mLocISize = glGetAttribLocation(programID,mAttribISize);
 
         return programID;
     }
@@ -146,21 +133,6 @@ public class PointCloudManager
         glBindBuffer(GL_ARRAY_BUFFER, vboID[0]);
         glBufferData(GL_ARRAY_BUFFER, pData.length * S_SIZE_FLOAT, dataBuffer, pUsage);
         glBindBuffer(GL_ARRAY_BUFFER,0);
-
-        return vboID[0];
-    }
-
-    public int CreateElementByteBuffer(byte[] pData, int pUsage)
-    {
-        ByteBuffer dataBuffer = ByteBuffer.allocateDirect(pData.length)
-                .put(pData);
-        dataBuffer.position(0);
-
-        int[] vboID = new int[1];
-        glGenBuffers(1,vboID,0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID[0]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, pData.length, dataBuffer, pUsage);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 
         return vboID[0];
     }
@@ -205,12 +177,6 @@ public class PointCloudManager
         glEnableVertexAttribArray(mLocIPos);
         glVertexAttribPointer(mLocIPos, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, 0);
         glVertexAttribDivisor(mLocIPos, 1);
-        glEnableVertexAttribArray(mLocIColor);
-        glVertexAttribPointer(mLocIColor, 3, GL_FLOAT, false, S_INSTANCE_STRIDE, S_SIZE_POS * S_SIZE_FLOAT);
-        glVertexAttribDivisor(mLocIColor, 1);
-        glEnableVertexAttribArray(mLocISize);
-        glVertexAttribPointer(mLocISize, 1, GL_FLOAT, false, S_INSTANCE_STRIDE, (S_SIZE_POS + S_SIZE_COLOR) * S_SIZE_FLOAT);
-        glVertexAttribDivisor(mLocISize, 1);
 
         //cleanup
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -219,13 +185,10 @@ public class PointCloudManager
         return new CloudData(cVaoID[0],pMeshVBO, elementCount, pInstanceVBO, pNumInst, pIndexVBO,pProg,pIndexType);
     }
 
-    public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
+    public void SetMatrix(SceneManager.Camera pCamera, float pAspect)
     {
         setIdentityM(mModelMatrix, 0);
-        translateM(mModelMatrix, 0, pTrans[0], pTrans[1], pTrans[2]);
-        rotateM(mModelMatrix, 0, pRot[0], 1.0f, 0.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[1], 0.0f, 1.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[2], 0.0f, 0.0f, 1.0f);
+        translateM(mModelMatrix, 0, 0,0,0);
 
         setIdentityM(mViewMatrix, 0);
         setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
