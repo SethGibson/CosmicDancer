@@ -25,7 +25,7 @@ public class CloudSurfaceView extends GLSurfaceView
 {
     private CloudRenderer           mRenderer;
     private Context                 mContext;
-    private static final String TAG = "Camera2BasicDepth";
+    private static final String TAG = "CosmicDancer";
 
     private CameraDevice mCamera;
     private CameraCharacteristics mCameraChar;
@@ -53,6 +53,8 @@ public class CloudSurfaceView extends GLSurfaceView
     @Override
     public void onPause()
     {
+        Log.d( TAG,"onPause" );
+        closeCamera();
         super.onPause();
     }
 
@@ -60,6 +62,8 @@ public class CloudSurfaceView extends GLSurfaceView
     public void onResume()
     {
         super.onResume();
+        Log.d(TAG, "onResume");
+        openCamera();
     }
 
     public void initView()
@@ -84,7 +88,6 @@ public class CloudSurfaceView extends GLSurfaceView
 
         return "<unknown streamId>: " + Integer.toHexString(streamId);
     }
-
 
     public static String formatToText(int format) {
         switch (format) {
@@ -128,23 +131,6 @@ public class CloudSurfaceView extends GLSurfaceView
         return "<unknown format>: " + Integer.toHexString(format);
     }
 
-
-    private class SimpleRunnable implements Runnable {
-        private ImageView mView;
-        private Bitmap mBitmap;
-
-        SimpleRunnable( ImageView view, Bitmap bitmap ){
-            mView = view;
-            mBitmap = bitmap;
-        }
-
-        @Override
-        public void run() {
-            mView.setImageBitmap(mBitmap);
-        }
-    }
-
-
     private class DepthImageAvailableListener implements DepthCameraImageReader.OnDepthCameraImageAvailableListener {
         @Override
         public void onDepthCameraImageAvailable(DepthCameraImageReader reader) {
@@ -152,7 +138,6 @@ public class CloudSurfaceView extends GLSurfaceView
             if (image != null) {
 
                 Plane[] planes = image.getPlanes();
-                assert(planes != null && planes.length > 0);
 
                 mDepthByteBuffer.rewind();
                 mDepthBitmap.copyPixelsFromBuffer(mDepthByteBuffer);
@@ -164,15 +149,9 @@ public class CloudSurfaceView extends GLSurfaceView
 
     private class ColorImageAvailableListener implements ImageReader.OnImageAvailableListener {
         @Override
-        public void onImageAvailable(ImageReader reader) {
-            Image image = reader.acquireLatestImage();
-            if (image != null) {
-                Plane[] planes = image.getPlanes();
-                assert(planes != null && planes.length > 0);
+        public void onImageAvailable(ImageReader reader)
+        {
 
-                mColorBitmap.copyPixelsFromBuffer(planes[0].getBuffer());
-                image.close();
-            }
         }
     }
 
@@ -279,7 +258,7 @@ public class CloudSurfaceView extends GLSurfaceView
 
     private void openCamera()
     {
-        Log.d( TAG,"openCamera" );
+        Log.d(TAG, "openCamera");
 
         CameraManager camManager = (CameraManager)mContext.getSystemService(Context.CAMERA_SERVICE);
         String cameraId = null;
