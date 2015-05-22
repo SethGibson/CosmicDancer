@@ -180,18 +180,19 @@ public class SkyboxManager
     }
 
 
-    public void SetMatrices(SceneManager.Camera pCamera, float mAspect, float[] pViewRot)
+    public void SetMatrices(SceneManager.Camera pCamera, float pAspect)
     {
-        setIdentityM(mModelMatrix,0);
-        translateM(mModelMatrix,0,0,0,0);
+        setIdentityM(mModelMatrix, 0);
+        translateM(mModelMatrix, 0, 0, 0, 0);
 
-        //sky matrix
         setIdentityM(mViewMatrix, 0);
-        rotateM(mViewMatrix, 0, pViewRot[0], 1f, 0f, 0f);
-        rotateM(mViewMatrix, 0, pViewRot[1], 0f, 1f, 0f);
-        rotateM(mViewMatrix, 0, pViewRot[2], 0f, 0f, 1f);
-
-        perspectiveM(mProjMatrix, 0, pCamera.FOV, mAspect, pCamera.NearClip, pCamera.FarClip);
+        /*
+        setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
+                pCamera.LookAt[0], pCamera.LookAt[1], pCamera.LookAt[2],
+                pCamera.Up[0], pCamera.Up[1], pCamera.Up[2]);
+        */
+        setIdentityM(mProjMatrix, 0);
+        perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
     }
 
     public void DrawSkybox(int pVaoID, int pProgID, int pCubemapID)

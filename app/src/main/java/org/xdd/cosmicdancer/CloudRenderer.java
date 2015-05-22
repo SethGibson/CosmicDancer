@@ -92,14 +92,14 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mSkyboxMgr.SetMatrices(mCamera, mAspect, new float[]{0, 0, 0});
+        mSkyboxMgr.SetMatrices(mCamera, mAspect);
         mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[mSkyboxCurrentID]);
 
         float xAngle = sysTime*0.00000002f;
         float yAngle = sysTime*0.00000004f;
         float zAngle = sysTime*0.00000001f;
 
-        mCloudMgr.SetMatrix(mCamera, mAspect, new float[]{0, 0, 0}, new float[]{xAngle, yAngle, zAngle});
+        mCloudMgr.SetMatrix(mCamera, mAspect);
         mCloudMgr.DrawCloud(mPointCloud, mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
     }
 

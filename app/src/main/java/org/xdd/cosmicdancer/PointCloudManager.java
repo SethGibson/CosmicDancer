@@ -185,13 +185,10 @@ public class PointCloudManager
         return new CloudData(cVaoID[0],pMeshVBO, elementCount, pInstanceVBO, pNumInst, pIndexVBO,pProg,pIndexType);
     }
 
-    public void SetMatrix(SceneManager.Camera pCamera, float pAspect, float[] pTrans, float[] pRot)
+    public void SetMatrix(SceneManager.Camera pCamera, float pAspect)
     {
         setIdentityM(mModelMatrix, 0);
-        translateM(mModelMatrix, 0, pTrans[0], pTrans[1], pTrans[2]);
-        rotateM(mModelMatrix, 0, pRot[0], 1.0f, 0.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[1], 0.0f, 1.0f, 0.0f);
-        rotateM(mModelMatrix, 0, pRot[2], 0.0f, 0.0f, 1.0f);
+        translateM(mModelMatrix, 0, 0,0,0);
 
         setIdentityM(mViewMatrix, 0);
         setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
