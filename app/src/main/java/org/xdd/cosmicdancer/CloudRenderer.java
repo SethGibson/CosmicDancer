@@ -5,9 +5,6 @@ import static android.opengl.GLES30.*;
 import android.content.Context;
 import android.graphics.Point;
 import android.opengl.GLSurfaceView;
-import android.os.SystemClock;
-import android.transition.Scene;
-import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 
@@ -171,7 +168,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         //create spheres cloud
         int subdAxis = 8;
         int subdHeight = 8;
-        float radius = 20.0f;
+        float radius = 10.0f;
         float[] sphereMeshData = new float[subdAxis*subdHeight*6];
         int[] sphereIndexData = new int[(subdAxis*subdHeight+subdAxis)*6];
         SceneManager.GetSphereVerts(sphereMeshData,sphereIndexData,radius,subdAxis,subdHeight);
