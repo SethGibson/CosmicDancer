@@ -53,12 +53,14 @@ public class PointCloudManager
     private final String    mUniformModel = "uModelMatrix";
     private final String    mUniformView = "uViewMatrix";
     private final String    mUniformProj = "uProjMatrix";
+    private final String    mUniformNorm = "uNormalMatrix";
     private final String    mUniformLight = "uLightPos";
     private final String    mUniformEye = "uEyePos";
     private final String    mUniformCubemapIn = "uCubemapInSampler";
     private int             mLocModel;
     private int             mLocView;
     private int             mLocProj;
+    private int             mLocNormal;
     private int             mLocLight;
     private int             mLocEye;
     private int             mLocCube;
@@ -80,6 +82,7 @@ public class PointCloudManager
     private float[]         mModelMatrix = new float[16];
     private float[]         mViewMatrix = new float[16];
     private float[]         mProjMatrix = new float[16];
+    private float[]         mNormMatrix = new float[16];
 
     private int             mInstanceSize;
     private int             mVertexSize;
@@ -108,6 +111,7 @@ public class PointCloudManager
         mLocModel = glGetUniformLocation(programID, mUniformModel);
         mLocView = glGetUniformLocation(programID, mUniformView);
         mLocProj = glGetUniformLocation(programID, mUniformProj);
+        mLocNormal = glGetUniformLocation(programID, mUniformNorm);
         mLocLight = glGetUniformLocation(programID, mUniformLight);
         mLocEye = glGetUniformLocation(programID, mUniformEye);
         mLocCube = glGetUniformLocation(programID, mUniformCubemapIn);
@@ -188,7 +192,7 @@ public class PointCloudManager
     public void SetMatrix(SceneManager.Camera pCamera, float pAspect)
     {
         setIdentityM(mModelMatrix, 0);
-        translateM(mModelMatrix, 0, 0,0,0);
+        translateM(mModelMatrix, 0, 0, 0, 0);
 
         setIdentityM(mViewMatrix, 0);
         setLookAtM(mViewMatrix, 0, pCamera.Position[0], pCamera.Position[1], pCamera.Position[2],
@@ -198,6 +202,10 @@ public class PointCloudManager
         setIdentityM(mProjMatrix, 0);
         perspectiveM(mProjMatrix, 0, pCamera.FOV, pAspect, pCamera.NearClip, pCamera.FarClip);
 
+        setIdentityM(mNormMatrix, 0);
+        multiplyMM(mNormMatrix, 0, mProjMatrix, 0, mViewMatrix, 0);
+        invertM(mNormMatrix, 0, mNormMatrix, 0);
+        transposeM(mNormMatrix,0,mNormMatrix,0);
     }
 
     public void DrawCloud(CloudData pCloudData, float[] pLightPos, float[] pEyePos, int pSkyboxTexID)
@@ -206,6 +214,7 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocModel, 1, false, mModelMatrix, 0);
         glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
         glUniformMatrix4fv(mLocProj, 1, false, mProjMatrix, 0);
+        glUniformMatrix4fv(mLocNormal, 1, false, mNormMatrix, 0);
         glUniform3fv(mLocLight, 1, pLightPos, 0);
         glUniform3fv(mLocEye, 1, pEyePos, 0);
 

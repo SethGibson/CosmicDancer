@@ -59,12 +59,12 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public void onSurfaceCreated(GL10 gl, EGLConfig config)
     {
         glClearColor(0.25f, 0.25f, 0.25f, 1f);
-        mCamera = new SceneManager.Camera(  0, 0, 40,
-                                            0, 0, 0,
-                                            0, 1, 0,
-                                            0.1f,500.0f,
+        mCamera = new SceneManager.Camera(  0, 0, 0,
+                                            0, 0, 1,
+                                            0, -1, 0,
+                                            100.0f,4000.0f,
                                             45.0f);
-        mLightPosition[0] = 0;mLightPosition[1] = 0;mLightPosition[2] = 40;
+        mLightPosition[0] = 0;mLightPosition[1] = 500.0f;mLightPosition[2] = 0;
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
@@ -141,23 +141,22 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
     void SetupPointClouds()
     {
-        Random rgbGen = new Random();
-        int numElements = 10;
-        float bound = 10.0f;
-        float step = (bound*2.0f)/(float)numElements;
-
+        int numElements = 1000;
+        float minPos = 500.0f;
+        float maxPos = 1500.0f;
+        float step = 100.0f;
         //setup instance data
-        float[] instanceData = new float[numElements*numElements*numElements*3];
+        float[] instanceData = new float[numElements*3];
         int id = 0;
-        for(int px=0;px<numElements;++px)
+        for(int px=0;px<10;++px)
         {
-            float xPos = -bound + ((float)px*step)+(step*0.5f);
-            for(int py=0;py<numElements;++py)
+            float xPos = -500.0f+(px*step);
+            for(int py=0;py<10;++py)
             {
-                float yPos = -bound + ((float)py*step)+(step*0.5f);
-                for(int pz=0;pz<numElements;++pz)
+                float yPos = -500.0f+(py*step);
+                for(int pz=0;pz<10;++pz)
                 {
-                    float zPos = -bound + ((float)pz*step)+(step*0.5f);
+                    float zPos = minPos+(pz*step);
                     instanceData[id++] = xPos;
                     instanceData[id++] = yPos;
                     instanceData[id++] = zPos;
@@ -172,7 +171,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         //create spheres cloud
         int subdAxis = 8;
         int subdHeight = 8;
-        float radius = step*0.5f;
+        float radius = 20.0f;
         float[] sphereMeshData = new float[subdAxis*subdHeight*6];
         int[] sphereIndexData = new int[(subdAxis*subdHeight+subdAxis)*6];
         SceneManager.GetSphereVerts(sphereMeshData,sphereIndexData,radius,subdAxis,subdHeight);

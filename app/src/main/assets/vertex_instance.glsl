@@ -1,6 +1,7 @@
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjMatrix;
+uniform mat4 uNormalMatrix;
 
 attribute vec4 vPosition;
 attribute vec3 vNormal;
@@ -13,7 +14,7 @@ varying vec3 Normal;
 void main()
 {
     vec3 finalPosition = vPosition.xyz+iPosition;
-    mat4 normalMatrix = mat4(mat3(uViewMatrix*uModelMatrix));
+    mat4 normalMatrix = mat4(mat3(uNormalMatrix));
 
     Normal = vec3(normalMatrix*vec4(vNormal,0.0));
     FragPos = vec3(uViewMatrix*uModelMatrix*vPosition);
