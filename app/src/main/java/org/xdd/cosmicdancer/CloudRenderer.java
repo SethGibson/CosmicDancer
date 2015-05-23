@@ -9,6 +9,9 @@ import android.view.Display;
 import android.view.WindowManager;
 
 import java.lang.Math;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.Random;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -31,6 +34,10 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     //Pointcloud
     public PointCloudManager                mCloudMgr;
     private PointCloudManager.CloudData     mPointCloud;
+    private float[]                         mDataBuffer;
+    int                                     mNumPoints;
+    private FloatBuffer                     mInstanceBuffer;
+    private boolean                         mIsStreaming;
 
     //Misc world stuff
     private float               mAspect;
@@ -50,6 +57,21 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         cDisp.getSize(cSize);
         mAspect = (float)cSize.x/(float)cSize.y;
         mStartTime = System.currentTimeMillis();
+        mNumPoints = 0;
+        mIsStreaming = false;
+    }
+
+    public void SetStreaming(boolean pStreaming)
+    {
+        mIsStreaming = pStreaming;
+    }
+    public void SetBuffer(float[] pDepthBuffer, int numPoints)
+    {
+        mNumPoints = numPoints;
+        System.arraycopy(pDepthBuffer, 0, mDataBuffer, 0, numPoints * 3);
+        mInstanceBuffer.clear();
+        mInstanceBuffer.put(mDataBuffer, 0, numPoints * 3);
+        mInstanceBuffer.flip();
     }
 
     @Override
@@ -68,6 +90,13 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
         SetupSkyboxes();
         SetupPointClouds();
+        mDataBuffer = new float[480*360*3];
+        mInstanceBuffer = ByteBuffer.allocateDirect(480 * 360 * 3 * 4)
+                                    .order(ByteOrder.nativeOrder())
+                                    .asFloatBuffer();
+
+        mInstanceBuffer.put(mDataBuffer);
+        mInstanceBuffer.position(0);
     }
 
     @Override
@@ -80,6 +109,11 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     @Override
     public void onDrawFrame(GL10 gl)
     {
+        if(mIsStreaming) {
+            //update vertex buffer
+            mCloudMgr.UpdateCloud(mPointCloud, mInstanceBuffer, mNumPoints);
+        }
+
         long sysTime = System.nanoTime();
         long elapsedTime = System.currentTimeMillis() - mStartTime;
         if(elapsedTime>S_TRANS_TIME_MILLIS)
@@ -91,10 +125,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
 
         mSkyboxMgr.SetMatrices(mCamera, mAspect);
         mSkyboxMgr.DrawSkybox(mSkyboxVaoID, mSkyboxProgID, mSkyboxTexIDs[mSkyboxCurrentID]);
-
-        float xAngle = sysTime*0.00000002f;
-        float yAngle = sysTime*0.00000004f;
-        float zAngle = sysTime*0.00000001f;
 
         mCloudMgr.SetMatrix(mCamera, mAspect);
         mCloudMgr.DrawCloud(mPointCloud, mLightPosition, mCamera.Position, mSkyboxTexIDs[mSkyboxCurrentID]);
@@ -160,7 +190,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                 }
             }
         }
-        int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_STATIC_DRAW);
+        int instanceVBO = mCloudMgr.CreateArrayBuffer(instanceData, GL_DYNAMIC_DRAW);
         int instanceCount = instanceData.length/3;
         //setup materials
         int spheresProgID = mCloudMgr.CreateProgram("vertex_instance.glsl", "frag_carpaint.glsl");

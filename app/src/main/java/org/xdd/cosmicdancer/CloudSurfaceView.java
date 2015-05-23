@@ -39,7 +39,6 @@ public class CloudSurfaceView extends GLSurfaceView
     private CameraCaptureSession mPreviewSession = null;
     private ArrayList<Surface> mTargets;
     private boolean mRepeating = false;
-    private ByteBuffer mDepthByteBuffer;
     private float[] mDepthData;
     private DepthCameraImageReader depthReader;
     private ImageReader colorReader;
@@ -53,7 +52,7 @@ public class CloudSurfaceView extends GLSurfaceView
     @Override
     public void onPause()
     {
-        Log.d( TAG,"onPause" );
+        Log.d(TAG, "onPause");
         closeCamera();
         super.onPause();
     }
@@ -69,9 +68,9 @@ public class CloudSurfaceView extends GLSurfaceView
     public void initView()
     {
         setEGLContextClientVersion(3);
-        //setRenderMode(RENDERMODE_WHEN_DIRTY);
         mRenderer = new CloudRenderer(mContext);
         setRenderer(mRenderer);
+        //setRenderMode(RENDERMODE_WHEN_DIRTY);
     }
 
     public static String streamIdToText(int streamId){
@@ -131,31 +130,41 @@ public class CloudSurfaceView extends GLSurfaceView
         return "<unknown format>: " + Integer.toHexString(format);
     }
 
-    private class DepthImageAvailableListener implements DepthCameraImageReader.OnDepthCameraImageAvailableListener {
+    private class DepthImageAvailableListener implements DepthCameraImageReader.OnDepthCameraImageAvailableListener
+    {
         @Override
         public void onDepthCameraImageAvailable(DepthCameraImageReader reader)
         {
             DepthImage image = (DepthImage)reader.acquireNextImage();
             int id=0;
+            int pointCounter = 0;
+
             if (image != null)
             {
+                mRenderer.SetStreaming(true);
                 int maxX = mDepthWidth/4;
                 int maxY = mDepthHeight/4;
+
                 for(int dy=0;dy<maxY;dy++)
                 {
                     for(int dx=0;dx<maxX;dx++)
                     {
-                        Point3DF worldPos = image.projectImageToWorldCoordinates(
-                                mDepthIntrinsics, new Point(dx,dy)
-                        );
-                        mDepthData[id++] = worldPos.x;
-                        mDepthData[id++] = worldPos.y;
-                        mDepthData[id++] = worldPos.z;
+                        int xCoord = dx*4;
+                        int yCoord = dy*4;
+                        float dz = image.getZ(xCoord, yCoord);
+                        if(dz>100.0f && dz<1500.0f) {
+                            mDepthData[id++] = (float)xCoord;
+                            mDepthData[id++] = (float)yCoord;
+                            mDepthData[id++] = dz;
+                            pointCounter++;
+                        }
                     }
                 }
                 image.close();
-                //requestRender();
+                mRenderer.SetBuffer(mDepthData,pointCounter);
             }
+            else
+                mRenderer.SetStreaming(false);
         }
     }
 
@@ -245,7 +254,6 @@ public class CloudSurfaceView extends GLSurfaceView
 
             depthReader = DepthCameraImageReader.newInstance(mDepthWidth, mDepthHeight, DepthImageFormat.Z16, MAX_NUM_FRAMES);
             depthReader.setOnImageAvailableListener(new DepthImageAvailableListener(), null);
-            mDepthByteBuffer = ByteBuffer.allocateDirect(mDepthWidth * mDepthHeight * 4);
             mDepthData = new float[mDepthWidth*mDepthHeight*3];
             mColorWidth = 640;
             mColorHeight = 480;
@@ -336,23 +344,26 @@ public class CloudSurfaceView extends GLSurfaceView
                     }
                 }
             }
-
+            camManager.openCamera(cameraId, new SimpleDeviceListener(), mHandler);
+            /*
             DepthCameraCalibrationDataMap dataMap = new DepthCameraCalibrationDataMap(mCameraChar);
             DepthCameraCalibrationDataMap.DepthCameraCalibrationData calibData =
                     dataMap.getCalibrationData(new Size(mColorWidth, mColorHeight),
                             new Size(mDepthWidth, mDepthHeight),
                             false,cameraIdx);
 
-            mDepthIntrinsics = calibData.getDepthCameraIntrinsics();
-            camManager.openCamera(cameraId, new SimpleDeviceListener(), mHandler);
+            mDepthIntrinsics = calibData.getDepthCameraIntrinsics();*/
+
         }
         catch (CameraAccessException e) {
             Log.e( TAG, "CameraAccessException:" + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("crash crash");
         }
         catch (Exception e) {
-            Log.e( TAG, "Exception:" + e.getMessage());
+            Log.e(TAG, "Exception:" + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("crash crash");
         }
     }
 

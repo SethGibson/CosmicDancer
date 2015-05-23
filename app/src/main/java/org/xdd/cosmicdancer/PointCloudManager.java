@@ -87,17 +87,19 @@ public class PointCloudManager
     private int             mInstanceSize;
     private int             mVertexSize;
 
-    public PointCloudManager(Context pContext, ShaderManager pShaderMgr)
-    {
+
+
+    public PointCloudManager(Context pContext, ShaderManager pShaderMgr) {
         mContext = pContext;
         mShaderMgr = pShaderMgr;
 
         mInstanceSize = S_SIZE_POS;
-        S_INSTANCE_STRIDE = mInstanceSize*S_SIZE_FLOAT;
+        S_INSTANCE_STRIDE = mInstanceSize * S_SIZE_FLOAT;
 
-        mVertexSize = S_SIZE_POS+S_SIZE_NORM;
-        S_VERTEX_STRIDE = mVertexSize*S_SIZE_FLOAT;
+        mVertexSize = S_SIZE_POS + S_SIZE_NORM;
+        S_VERTEX_STRIDE = mVertexSize * S_SIZE_FLOAT;
     }
+
 
     public int CreateProgram(String pVertexShader, String pFragmentShader)
     {
@@ -208,6 +210,14 @@ public class PointCloudManager
         transposeM(mNormMatrix,0,mNormMatrix,0);
     }
 
+    public void UpdateCloud(CloudData pCloudData, FloatBuffer pDepthBuffer, int pNumPoints)
+    {
+        pCloudData.InstanceCount = pNumPoints;
+        glBindBuffer(GL_ARRAY_BUFFER, pCloudData.InstanceVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, pNumPoints * 3 * 4, pDepthBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     public void DrawCloud(CloudData pCloudData, float[] pLightPos, float[] pEyePos, int pSkyboxTexID)
     {
         glUseProgram(pCloudData.GlslProgram);
@@ -223,14 +233,9 @@ public class PointCloudManager
         glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
 
         glBindVertexArray(pCloudData.CloudVAO);
-        if(pCloudData.IndexVBO>=0)
-        {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
-            glDrawElementsInstanced(GL_TRIANGLES, pCloudData.ElementCount, pCloudData.IndexType, 0, pCloudData.InstanceCount);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        }
-        else
-            glDrawArraysInstanced(GL_TRIANGLES,0,pCloudData.ElementCount,pCloudData.InstanceCount);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
+        glDrawElementsInstanced(GL_TRIANGLES, pCloudData.ElementCount, pCloudData.IndexType, 0, pCloudData.InstanceCount);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         glUseProgram(0);
