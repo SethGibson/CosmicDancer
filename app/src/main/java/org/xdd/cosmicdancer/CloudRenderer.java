@@ -4,6 +4,7 @@ import static android.opengl.GLES30.*;
 
 import android.content.Context;
 import android.graphics.Point;
+import android.media.Image;
 import android.opengl.GLSurfaceView;
 import android.view.Display;
 import android.view.WindowManager;
@@ -36,7 +37,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     private PointCloudManager.CloudData     mPointCloud;
     private float[]                         mDataBuffer;
     int                                     mNumPoints;
-    private FloatBuffer                     mInstanceBuffer;
     private boolean                         mIsStreaming;
 
     //Misc world stuff
@@ -44,8 +44,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     private SceneManager.Camera mCamera;
     private float[]             mLightPosition = new float[3];
     private long                mStartTime;
-
-
 
     public CloudRenderer(Context pContext)
     {
@@ -60,18 +58,23 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mNumPoints = 0;
         mIsStreaming = false;
     }
+    /*
+    Pass buffer to cloud manager
+     */
 
     public void SetStreaming(boolean pStreaming)
     {
         mIsStreaming = pStreaming;
     }
-    public void SetBuffer(float[] pDepthBuffer, int numPoints)
+
+    public void SetCloudBuffer(float[] pBuffer)
     {
-        mNumPoints = numPoints;
-        System.arraycopy(pDepthBuffer, 0, mDataBuffer, 0, numPoints * 3);
-        mInstanceBuffer.clear();
-        mInstanceBuffer.put(mDataBuffer, 0, numPoints * 3);
-        mInstanceBuffer.flip();
+        mDataBuffer = pBuffer;
+    }
+
+    public void SetNumPoints(int pNumPoints)
+    {
+        mPointCloud.InstanceCount = pNumPoints;
     }
 
     @Override
@@ -87,16 +90,9 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
-
+        mCloudMgr.GetCloudBuffer(mDataBuffer);
         SetupSkyboxes();
         SetupPointClouds();
-        mDataBuffer = new float[480*360*3];
-        mInstanceBuffer = ByteBuffer.allocateDirect(480 * 360 * 3 * 4)
-                                    .order(ByteOrder.nativeOrder())
-                                    .asFloatBuffer();
-
-        mInstanceBuffer.put(mDataBuffer);
-        mInstanceBuffer.position(0);
     }
 
     @Override
@@ -109,11 +105,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     @Override
     public void onDrawFrame(GL10 gl)
     {
-        if(mIsStreaming) {
-            //update vertex buffer
-            mCloudMgr.UpdateCloud(mPointCloud, mInstanceBuffer, mNumPoints);
-        }
-
         long sysTime = System.nanoTime();
         long elapsedTime = System.currentTimeMillis() - mStartTime;
         if(elapsedTime>S_TRANS_TIME_MILLIS)

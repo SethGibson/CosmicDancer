@@ -46,7 +46,8 @@ public class CloudSurfaceView extends GLSurfaceView
     public CloudSurfaceView(Context context)
     {
         super(context);
-        mContext = context;
+        initView(context);
+        mDepthData = new float[480*360*3];
     }
 
     @Override
@@ -65,12 +66,13 @@ public class CloudSurfaceView extends GLSurfaceView
         openCamera();
     }
 
-    public void initView()
+    public void initView(Context pContext)
     {
+        mContext = pContext;
         setEGLContextClientVersion(3);
         mRenderer = new CloudRenderer(mContext);
         setRenderer(mRenderer);
-        //setRenderMode(RENDERMODE_WHEN_DIRTY);
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
     }
 
     public static String streamIdToText(int streamId){
@@ -153,18 +155,22 @@ public class CloudSurfaceView extends GLSurfaceView
                         int yCoord = dy*4;
                         float dz = image.getZ(xCoord, yCoord);
                         if(dz>100.0f && dz<1500.0f) {
-                            mDepthData[id++] = (float)xCoord;
-                            mDepthData[id++] = (float)yCoord;
+                            mDepthData[id++] = (float)xCoord-240.0f;
+                            mDepthData[id++] = (float)yCoord-180.0f;
                             mDepthData[id++] = dz;
                             pointCounter++;
                         }
                     }
                 }
-                image.close();
-                mRenderer.SetBuffer(mDepthData,pointCounter);
+                mRenderer.SetNumPoints(pointCounter);
+
+                requestRender();
             }
             else
+            {
                 mRenderer.SetStreaming(false);
+            }
+            image.close();
         }
     }
 
@@ -173,7 +179,8 @@ public class CloudSurfaceView extends GLSurfaceView
         @Override
         public void onImageAvailable(ImageReader reader)
         {
-
+            Image image = reader.acquireNextImage();
+            image.close();
         }
     }
 
@@ -254,7 +261,7 @@ public class CloudSurfaceView extends GLSurfaceView
 
             depthReader = DepthCameraImageReader.newInstance(mDepthWidth, mDepthHeight, DepthImageFormat.Z16, MAX_NUM_FRAMES);
             depthReader.setOnImageAvailableListener(new DepthImageAvailableListener(), null);
-            mDepthData = new float[mDepthWidth*mDepthHeight*3];
+
             mColorWidth = 640;
             mColorHeight = 480;
 
@@ -345,15 +352,7 @@ public class CloudSurfaceView extends GLSurfaceView
                 }
             }
             camManager.openCamera(cameraId, new SimpleDeviceListener(), mHandler);
-            /*
-            DepthCameraCalibrationDataMap dataMap = new DepthCameraCalibrationDataMap(mCameraChar);
-            DepthCameraCalibrationDataMap.DepthCameraCalibrationData calibData =
-                    dataMap.getCalibrationData(new Size(mColorWidth, mColorHeight),
-                            new Size(mDepthWidth, mDepthHeight),
-                            false,cameraIdx);
-
-            mDepthIntrinsics = calibData.getDepthCameraIntrinsics();*/
-
+            mRenderer.SetCloudBuffer(mDepthData);
         }
         catch (CameraAccessException e) {
             Log.e( TAG, "CameraAccessException:" + e.getMessage());

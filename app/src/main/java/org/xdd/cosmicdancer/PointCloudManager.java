@@ -87,7 +87,8 @@ public class PointCloudManager
     private int             mInstanceSize;
     private int             mVertexSize;
 
-
+    private float[]         mPointCloud;
+    private FloatBuffer     mPositions;
 
     public PointCloudManager(Context pContext, ShaderManager pShaderMgr) {
         mContext = pContext;
@@ -100,7 +101,15 @@ public class PointCloudManager
         S_VERTEX_STRIDE = mVertexSize * S_SIZE_FLOAT;
     }
 
-
+    public void GetCloudBuffer(final float[] pBuffer)
+    {
+        if(pBuffer==null)
+            throw new RuntimeException("crash crash");
+        mPointCloud = pBuffer;
+        if(mPointCloud==null)
+            throw new RuntimeException("crash crash");
+        mPositions = ByteBuffer.allocateDirect(480*360*3*4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+    }
     public int CreateProgram(String pVertexShader, String pFragmentShader)
     {
         int vertID = mShaderMgr.CreateShader(pVertexShader, GL_VERTEX_SHADER);
@@ -220,24 +229,35 @@ public class PointCloudManager
 
     public void DrawCloud(CloudData pCloudData, float[] pLightPos, float[] pEyePos, int pSkyboxTexID)
     {
-        glUseProgram(pCloudData.GlslProgram);
-        glUniformMatrix4fv(mLocModel, 1, false, mModelMatrix, 0);
-        glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
-        glUniformMatrix4fv(mLocProj, 1, false, mProjMatrix, 0);
-        glUniformMatrix4fv(mLocNormal, 1, false, mNormMatrix, 0);
-        glUniform3fv(mLocLight, 1, pLightPos, 0);
-        glUniform3fv(mLocEye, 1, pEyePos, 0);
+        if(mPointCloud==null)
+            throw new RuntimeException("crash crash");
+        synchronized (mPointCloud) {
+            mPositions.clear();
+            mPositions.put(mPointCloud.clone(), 0, pCloudData.InstanceCount * 3);
+            mPositions.position(0);
+            glBindBuffer(GL_ARRAY_BUFFER, pCloudData.InstanceVBO);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, pCloudData.InstanceCount * 3 * 4, mPositions);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        glUniform1i(mLocCube, 0);
-        glActiveTexture(0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
+            glUseProgram(pCloudData.GlslProgram);
+            glUniformMatrix4fv(mLocModel, 1, false, mModelMatrix, 0);
+            glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
+            glUniformMatrix4fv(mLocProj, 1, false, mProjMatrix, 0);
+            glUniformMatrix4fv(mLocNormal, 1, false, mNormMatrix, 0);
+            glUniform3fv(mLocLight, 1, pLightPos, 0);
+            glUniform3fv(mLocEye, 1, pEyePos, 0);
 
-        glBindVertexArray(pCloudData.CloudVAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
-        glDrawElementsInstanced(GL_TRIANGLES, pCloudData.ElementCount, pCloudData.IndexType, 0, pCloudData.InstanceCount);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        glUseProgram(0);
+            glUniform1i(mLocCube, 0);
+            glActiveTexture(0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pSkyboxTexID);
+
+            glBindVertexArray(pCloudData.CloudVAO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pCloudData.IndexVBO);
+            glDrawElementsInstanced(GL_TRIANGLES, pCloudData.ElementCount, pCloudData.IndexType, 0, pCloudData.InstanceCount);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+            glUseProgram(0);
+        }
     }
 }
