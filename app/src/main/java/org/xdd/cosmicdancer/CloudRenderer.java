@@ -83,7 +83,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
                                             0, -1, 0,
                                             100.0f,4000.0f,
                                             45.0f);
-        mLightPosition[0] = 0;mLightPosition[1] = 500.0f;mLightPosition[2] = 0;
+        mLightPosition[0] = 0.0f;mLightPosition[1] = 500.0f;mLightPosition[2] = 500.0f;
         mShaderMgr = new ShaderManager(mContext);
         mSkyboxMgr = new SkyboxManager(mContext, mShaderMgr);
         mCloudMgr = new PointCloudManager(mContext,mShaderMgr);
@@ -110,7 +110,6 @@ public class CloudRenderer implements GLSurfaceView.Renderer
     public void onDrawFrame(GL10 gl)
     {
         if(mIsStreaming) {
-            //update vertex buffer
             mCloudMgr.UpdateCloud(mPointCloud, mInstanceBuffer, mNumPoints);
         }
 
@@ -198,7 +197,7 @@ public class CloudRenderer implements GLSurfaceView.Renderer
         //create spheres cloud
         int subdAxis = 8;
         int subdHeight = 8;
-        float radius = 10.0f;
+        float radius = 8.0f;
         float[] sphereMeshData = new float[subdAxis*subdHeight*6];
         int[] sphereIndexData = new int[(subdAxis*subdHeight+subdAxis)*6];
         SceneManager.GetSphereVerts(sphereMeshData,sphereIndexData,radius,subdAxis,subdHeight);

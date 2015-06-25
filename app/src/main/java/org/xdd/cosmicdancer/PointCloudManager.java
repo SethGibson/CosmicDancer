@@ -113,9 +113,9 @@ public class PointCloudManager
         mLocModel = glGetUniformLocation(programID, mUniformModel);
         mLocView = glGetUniformLocation(programID, mUniformView);
         mLocProj = glGetUniformLocation(programID, mUniformProj);
-        mLocNormal = glGetUniformLocation(programID, mUniformNorm);
+        //mLocNormal = glGetUniformLocation(programID, mUniformNorm);
         mLocLight = glGetUniformLocation(programID, mUniformLight);
-        mLocEye = glGetUniformLocation(programID, mUniformEye);
+        //mLocEye = glGetUniformLocation(programID, mUniformEye);
         mLocCube = glGetUniformLocation(programID, mUniformCubemapIn);
 
         //get attributes
@@ -224,9 +224,9 @@ public class PointCloudManager
         glUniformMatrix4fv(mLocModel, 1, false, mModelMatrix, 0);
         glUniformMatrix4fv(mLocView, 1, false, mViewMatrix, 0);
         glUniformMatrix4fv(mLocProj, 1, false, mProjMatrix, 0);
-        glUniformMatrix4fv(mLocNormal, 1, false, mNormMatrix, 0);
+        //glUniformMatrix4fv(mLocNormal, 1, false, mNormMatrix, 0);
         glUniform3fv(mLocLight, 1, pLightPos, 0);
-        glUniform3fv(mLocEye, 1, pEyePos, 0);
+        //glUniform3fv(mLocEye, 1, pEyePos, 0);
 
         glUniform1i(mLocCube, 0);
         glActiveTexture(0);

@@ -70,7 +70,7 @@ public class CloudSurfaceView extends GLSurfaceView
         setEGLContextClientVersion(3);
         mRenderer = new CloudRenderer(mContext);
         setRenderer(mRenderer);
-        //setRenderMode(RENDERMODE_WHEN_DIRTY);
+        setRenderMode(RENDERMODE_WHEN_DIRTY);
     }
 
     public static String streamIdToText(int streamId){
@@ -142,29 +142,30 @@ public class CloudSurfaceView extends GLSurfaceView
             if (image != null)
             {
                 mRenderer.SetStreaming(true);
-                int maxX = mDepthWidth/4;
-                int maxY = mDepthHeight/4;
+                int maxX = mDepthWidth/2;
+                int maxY = mDepthHeight/2;
 
                 for(int dy=0;dy<maxY;dy++)
                 {
                     for(int dx=0;dx<maxX;dx++)
                     {
-                        int xCoord = dx*4;
-                        int yCoord = dy*4;
+                        int xCoord = dx*2;
+                        int yCoord = dy*2;
                         float dz = image.getZ(xCoord, yCoord);
                         if(dz>100.0f && dz<1500.0f) {
-                            mDepthData[id++] = (float)xCoord;
-                            mDepthData[id++] = (float)yCoord;
+                            mDepthData[id++] = (float)xCoord-240.0f;
+                            mDepthData[id++] = (float)yCoord-180.0f;
                             mDepthData[id++] = dz;
                             pointCounter++;
                         }
                     }
                 }
-                image.close();
                 mRenderer.SetBuffer(mDepthData,pointCounter);
+                requestRender();
             }
             else
                 mRenderer.SetStreaming(false);
+            image.close();
         }
     }
 
@@ -173,7 +174,8 @@ public class CloudSurfaceView extends GLSurfaceView
         @Override
         public void onImageAvailable(ImageReader reader)
         {
-
+            Image image = reader.acquireNextImage();
+            image.close();
         }
     }
 

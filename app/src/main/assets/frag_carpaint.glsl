@@ -1,25 +1,13 @@
 precision mediump float;
- uniform samplerCube uCubemapInSampler;
- uniform vec3 uLightPos;
- uniform vec3 uEyePos;
+uniform samplerCube uCubemapInSampler;
+uniform vec3 uLightPos;
 
- varying vec3 FragPos;
- varying vec3 Normal;
+varying vec3 Normal;
+varying vec3 FragPos;
 
- void main()
- {
-     vec3 normal = normalize(Normal);
-     vec3 lightDir = normalize(uLightPos-FragPos.xyz);
-     vec3 viewDir = normalize(uEyePos-FragPos.xyz);
-     vec3 lightReflect = normalize(reflect(-lightDir,normal));
-
-     vec3 I = normalize(FragPos.xyz-uEyePos);
-     vec3 viewReflect = normalize(reflect(I,normal));
-
-     float diffContrib = max(dot(normal, lightDir), 0.0);
-     float specContrib = max( pow( dot(viewDir, lightReflect), 8.0), 0.0);
-     vec4 reflSample = textureCube(uCubemapInSampler, viewReflect);
-     vec3 reflContrib = reflSample.rgb*diffContrib;
-
-     gl_FragColor = vec4(reflContrib+(specContrib*0.4),1.0);
- }
+void main()
+{
+    vec3 normal = normalize(Normal);
+    vec4 r = textureCube(uCubemapInSampler,FragPos);
+    gl_FragColor = vec4(vec3(r),1.0);
+}
